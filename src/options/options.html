@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NoLie - Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <header><img src="../assets/logo.svg" alt="NoLie"><h1>NoLie Settings</h1></header>
+    <main>
+      <section class="setting-section">
+        <h2>Groq API Key</h2>
+        <p class="setting-description">Used for claim extraction & verification (free, fast). Get one at <a href="https://console.groq.com/keys" target="_blank">console.groq.com</a> — no credit card needed.</p>
+        <div class="input-group">
+          <input type="password" id="groqKeyInput" placeholder="Enter your Groq API key (gsk_...)">
+          <button id="toggleGroqBtn" class="btn-icon-only">👁</button>
+        </div>
+        <div class="button-row"><button id="saveGroqBtn" class="btn btn-primary">Save & Test</button></div>
+        <div id="groqStatus" class="status hidden"></div>
+      </section>
+      <section class="setting-section">
+        <h2>Gemini API Key</h2>
+        <p class="setting-description">Used for image & video analysis (multimodal). Get one at <a href="https://aistudio.google.com/apikey" target="_blank">AI Studio</a>.</p>
+        <div class="input-group">
+          <input type="password" id="apiKeyInput" placeholder="Enter your Gemini API key">
+          <button id="toggleKeyBtn" class="btn-icon-only">👁</button>
+        </div>
+        <div class="button-row"><button id="saveKeyBtn" class="btn btn-primary">Save & Test</button></div>
+        <div id="keyStatus" class="status hidden"></div>
+      </section>
+      <section class="setting-section">
+        <h2>Preferences</h2>
+        <div class="setting-row"><label for="autoHeatmap">Auto-apply heatmap after scan</label><input type="checkbox" id="autoHeatmap" checked></div>
+        <div class="setting-row"><label for="analyzeImages">Analyze images (uses Gemini quota)</label><input type="checkbox" id="analyzeImages" checked></div>
+        <div class="setting-row"><label for="saveHistory">Save scan history</label><input type="checkbox" id="saveHistory" checked></div>
+        <div class="setting-row"><label for="maxClaims">Max claims per scan</label><select id="maxClaims"><option value="5">5</option><option value="10" selected>10</option><option value="15">15</option><option value="20">20</option></select></div>
+      </section>
+      <section class="setting-section">
+        <h2>Fact-Check Prompt</h2>
+        <p class="setting-description">Customize how NoLie verifies claims. Use <code>[[claim]]</code> as a placeholder for the claim being verified and <code>[[context]]</code> for the article context.</p>
+        <textarea id="promptTextarea" class="prompt-textarea" rows="12"></textarea>
+        <div class="button-row" style="margin-top:10px">
+          <button id="resetPromptBtn" class="btn btn-secondary-sm">Reset to Default</button>
+        </div>
+      </section>
+      <section class="setting-section">
+        <h2>About</h2>
+        <p class="about-text">NoLie is an AI-powered content credibility and fact verification tool.</p>
+        <p class="version">Version 1.0.0</p>
+      </section>
+    </main>
+  </div>
+  <script src="options.js" type="module"></script>
+</body>
+</html>

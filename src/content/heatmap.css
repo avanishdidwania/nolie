@@ -1,0 +1,11 @@
+.nolie-highlight {
+  border-radius: 2px;
+  padding: 1px 2px;
+  cursor: help;
+  transition: opacity 0.2s;
+}
+.nolie-highlight:hover { opacity: 0.8; }
+.nolie-true { background: rgba(16, 185, 129, 0.15); border-bottom: 2px solid #10b981; }
+.nolie-false { background: rgba(239, 68, 68, 0.15); border-bottom: 2px solid #ef4444; }
+.nolie-misleading { background: rgba(245, 158, 11, 0.15); border-bottom: 2px solid #f59e0b; }
+.nolie-unverifiable { background: rgba(107, 114, 128, 0.1); border-bottom: 2px solid #9ca3af; }

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NoLie - Results</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <div class="panel">
+    <header class="panel-header">
+      <div class="header-left"><img src="../assets/logo.svg" alt="NoLie" class="header-logo"><h1>NoLie</h1></div>
+      <div class="header-actions">
+        <button id="exportBtn" class="header-btn" title="Export">📥</button>
+        <button id="settingsBtn" class="header-btn" title="Settings">⚙️</button>
+      </div>
+    </header>
+    <nav class="tabs">
+      <button class="tab active" data-tab="results">Results</button>
+      <button class="tab" data-tab="history">History</button>
+    </nav>
+    <div id="resultsTab" class="tab-content active">
+      <div id="emptyState" class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <h2>Ready to fact-check</h2>
+        <p>Click "Scan This Page" in the popup or select text and right-click to verify.</p>
+      </div>
+      <div id="loadingState" class="loading-state hidden">
+        <div class="spinner"></div>
+        <p id="loadingText">Scanning page...</p>
+        <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+        <p id="progressText" class="progress-text">Extracting content...</p>
+      </div>
+      <div id="resultsContainer" class="results hidden">
+        <div class="score-section">
+          <div class="score-circle"><span id="scoreValue" class="score-value">--</span></div>
+          <div class="score-details">
+            <h2 class="score-label">Credibility Score</h2>
+            <div id="sourceBadge" class="source-badge"></div>
+            <div id="biasBadge" class="bias-badge"></div>
+          </div>
+        </div>
+        <div id="articleInfo" class="article-info hidden">
+          <span id="articleDomain"></span>
+          <span id="articleDate"></span>
+        </div>
+        <div class="section">
+          <div class="section-header"><h3>Claims Verified</h3><span id="claimCount" class="badge">0</span></div>
+          <div id="claimsList" class="claims-list"></div>
+        </div>
+        <div id="imagesSection" class="section hidden">
+          <div class="section-header"><h3>Image Analysis</h3><span id="imageCount" class="badge">0</span></div>
+          <div id="imagesList" class="images-list"></div>
+        </div>
+        <div id="videosSection" class="section hidden">
+          <div class="section-header"><h3>Video Analysis</h3><span id="videoCount" class="badge">0</span></div>
+          <div id="videosList" class="videos-list"></div>
+        </div>
+        <div class="actions">
+          <button id="exportResultsBtn" class="btn btn-secondary">📥 Export Report</button>
+          <button id="heatmapBtn" class="btn btn-secondary">🎨 Apply Heatmap</button>
+        </div>
+      </div>
+    </div>
+    <div id="historyTab" class="tab-content hidden">
+      <div id="historyList" class="history-list"></div>
+      <div id="historyEmpty" class="empty-state"><div class="empty-icon">📋</div><h2>No scan history</h2><p>Your past scans will appear here.</p></div>
+    </div>
+  </div>
+  <script src="sidepanel.js" type="module"></script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+/**
+ * Groq API wrapper for NoLie.
+ * Handles text-based AI calls: claim extraction and verification.
+ * Uses Llama 3.3 70B — free tier: 30 RPM, 1000 RPD, 12K TPM.
+ */
+
+import { GROQ_MODEL, GROQ_BASE_URL } from './constants.js';
+
+async function callGroq(apiKey, systemPrompt, userMessage) {
+  const res = await fetch(GROQ_BASE_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage },
+      ],
+      temperature: 0,
+      response_format: { type: 'json_object' },
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `Groq API error: ${res.status}`);
+  }
+
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content || '';
+}
+
+// ─── CLAIM EXTRACTION ────────────────────────────────────────────────────────
+
+const EXTRACT_SYSTEM = `You are a fact-checking assistant. Extract verifiable factual claims from article text. Return ONLY a JSON object with a "claims" array.`;
+
+const EXTRACT_USER = `Analyze this article and extract up to {maxClaims} specific, verifiable factual claims. 
+
+Rules:
+- Extract ONLY specific, verifiable statements (statistics, dates, events, named actions)
+- Ignore opinions, predictions, subjective statements, rhetorical questions
+- Each claim must be self-contained
+
+Return JSON: {"claims": [{"claim": "exact factual claim", "importance": "HIGH|MEDIUM|LOW"}]}
+
+Article:
+---
+{text}
+---`;
+
+export async function extractClaims(text, apiKey, maxClaims = 10) {
+  const truncated = text.slice(0, 12000);
+  const userMsg = EXTRACT_USER
+    .replace('{text}', truncated)
+    .replace('{maxClaims}', String(maxClaims));
+
+  const response = await callGroq(apiKey, EXTRACT_SYSTEM, userMsg);
+
+  try {
+    const parsed = JSON.parse(response);
+    const claims = parsed.claims || parsed;
+    if (Array.isArray(claims)) return claims.slice(0, maxClaims);
+  } catch {
+    const match = response.match(/\[[\s\S]*\]/);
+    if (match) {
+      try { return JSON.parse(match[0]).slice(0, maxClaims); } catch {}
+    }
+  }
+  return [];
+}
+
+// ─── CLAIM VERIFICATION ──────────────────────────────────────────────────────
+
+const VERIFY_SYSTEM = `You are a fact-checking assistant. You will be given a claim extracted from a news article, along with the article context. Use the context plus your knowledge to verify the claim. Be objective and evidence-based. Return ONLY a JSON object.`;
+
+const VERIFY_USER = `Article context (for reference):
+---
+{context}
+---
+
+Verify this specific claim from the article above: "{claim}"
+
+Return JSON:
+{
+  "verdict": "TRUE" or "FALSE" or "MISLEADING" or "UNVERIFIABLE",
+  "confidence": "HIGH" or "MEDIUM" or "LOW",
+  "explanation": "2-3 sentences with specific evidence. Reference the location, date, organizations, and people involved.",
+  "sources": ["name of authoritative source or news outlet that covered this"]
+}
+
+Important:
+- Use the article context to understand WHO, WHERE, WHEN, and WHAT the claim refers to
+- A claim is TRUE if it matches known facts/reports about this specific event
+- Only use UNVERIFIABLE if the event is too recent or obscure to have any coverage
+- Prefer specific source names (e.g. "BBC News", "Reuters", "NDRF official statement") over generic ones`;
+
+export async function verifyClaim(claim, apiKey, articleContext) {
+  const context = (articleContext || '').slice(0, 3000);
+
+  // Check for custom prompt
+  let userMsg;
+  try {
+    const data = await chrome.storage.local.get('nolie_settings');
+    const settings = data.nolie_settings || {};
+    if (settings.customPrompt && settings.customPrompt.includes('[[claim]]')) {
+      userMsg = settings.customPrompt
+        .replace('[[claim]]', claim)
+        .replace('[[context]]', context);
+    }
+  } catch {}
+
+  if (!userMsg) {
+    userMsg = VERIFY_USER.replace('{claim}', claim).replace('{context}', context);
+  }
+
+  const response = await callGroq(apiKey, VERIFY_SYSTEM, userMsg);
+
+  try {
+    return JSON.parse(response);
+  } catch {
+    const match = response.match(/\{[\s\S]*\}/);
+    if (match) {
+      try { return JSON.parse(match[0]); } catch {}
+    }
+    return {
+      verdict: 'UNVERIFIABLE',
+      confidence: 'LOW',
+      explanation: 'Could not parse verification result.',
+      sources: [],
+    };
+  }
+}
+
+export async function verifyClaims(claims, apiKey, articleContext) {
+  const results = [];
+  for (let i = 0; i < claims.length; i++) {
+    const claim = claims[i];
+    // Small delay between calls to respect rate limits
+    if (i > 0) await new Promise(r => setTimeout(r, 2000));
+    try {
+      const result = await verifyClaim(claim.claim, apiKey, articleContext);
+      results.push({
+        claim: claim.claim,
+        importance: claim.importance,
+        verdict: result.verdict || 'UNVERIFIABLE',
+        confidence: result.confidence || 'LOW',
+        explanation: result.explanation || '',
+        sources: result.sources || [],
+      });
+    } catch (e) {
+      results.push({
+        claim: claim.claim,
+        importance: claim.importance,
+        verdict: 'UNVERIFIABLE',
+        confidence: 'LOW',
+        explanation: 'Verification failed: ' + e.message,
+        sources: [],
+      });
+    }
+  }
+  return results;
+}
