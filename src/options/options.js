@@ -8,7 +8,6 @@ const apiKeyInput = document.getElementById('apiKeyInput');
 const toggleKeyBtn = document.getElementById('toggleKeyBtn');
 const saveKeyBtn = document.getElementById('saveKeyBtn');
 const keyStatus = document.getElementById('keyStatus');
-const autoHeatmap = document.getElementById('autoHeatmap');
 const analyzeImages = document.getElementById('analyzeImages');
 const saveHistory = document.getElementById('saveHistory');
 const maxClaims = document.getElementById('maxClaims');
@@ -20,7 +19,6 @@ async function loadSettings() {
   if (data[STORAGE_KEY.API_KEY]) apiKeyInput.value = data[STORAGE_KEY.API_KEY];
   if (data[STORAGE_KEY.GROQ_KEY]) groqKeyInput.value = data[STORAGE_KEY.GROQ_KEY];
   const s = data[STORAGE_KEY.SETTINGS] || {};
-  autoHeatmap.checked = s.autoHeatmap !== false;
   analyzeImages.checked = s.analyzeImages !== false;
   saveHistory.checked = s.saveHistory !== false;
   maxClaims.value = s.maxClaims || '10';
@@ -94,12 +92,11 @@ saveKeyBtn.addEventListener('click', async () => {
 // Preferences
 function savePreferences() {
   chrome.storage.local.set({ [STORAGE_KEY.SETTINGS]: {
-    autoHeatmap: autoHeatmap.checked, analyzeImages: analyzeImages.checked,
+    analyzeImages: analyzeImages.checked,
     saveHistory: saveHistory.checked, maxClaims: maxClaims.value,
     customPrompt: promptTextarea.value,
   }});
 }
-autoHeatmap.addEventListener('change', savePreferences);
 analyzeImages.addEventListener('change', savePreferences);
 saveHistory.addEventListener('change', savePreferences);
 maxClaims.addEventListener('change', savePreferences);

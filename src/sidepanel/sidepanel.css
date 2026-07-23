@@ -261,3 +261,7 @@ body {
 .history-score.high { border-color: #4daa57; color: #4daa57; }
 .history-score.medium { border-color: #c89023; color: #c89023; }
 .history-score.low { border-color: #d44c47; color: #d44c47; }
+
+.history-arrow { color: #5a5a5a; font-size: 14px; transition: color 0.15s; }
+.history-item:hover .history-arrow { color: #d4d4d4; }
+.history-details { display: flex; flex-direction: column; flex: 1; }

@@ -28,7 +28,6 @@ const videosList = document.getElementById('videosList');
 const exportBtn = document.getElementById('exportBtn');
 const settingsBtn = document.getElementById('settingsBtn');
 const exportResultsBtn = document.getElementById('exportResultsBtn');
-const heatmapBtn = document.getElementById('heatmapBtn');
 const tabs = document.querySelectorAll('.tab');
 const historyTab = document.getElementById('historyTab');
 const resultsTab = document.getElementById('resultsTab');
@@ -162,6 +161,13 @@ function showResults(results) {
   } else {
     videosSection.classList.add('hidden');
   }
+
+  // Auto-apply heatmap
+  chrome.tabs.query({ active: true, lastFocusedWindow: true }).then(([tab]) => {
+    if (tab && results.claims) {
+      chrome.tabs.sendMessage(tab.id, { type: MSG.APPLY_HEATMAP, claims: results.claims }).catch(() => {});
+    }
+  });
 }
 
 function showError(error) {
@@ -233,19 +239,6 @@ function renderVideo(video) {
   `;
 }
 
-// Heatmap button
-heatmapBtn.addEventListener('click', async () => {
-  if (!currentResults || !currentResults.claims) return;
-
-  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-  if (tab) {
-    chrome.tabs.sendMessage(tab.id, {
-      type: MSG.APPLY_HEATMAP,
-      claims: currentResults.claims,
-    });
-  }
-});
-
 // Export button
 function exportReport() {
   if (!currentResults) return;
@@ -282,22 +275,42 @@ async function loadHistory() {
   historyEmpty.classList.add('hidden');
   historyList.classList.remove('hidden');
 
-  historyList.innerHTML = history.map(item => {
+  historyList.innerHTML = history.map((item, index) => {
     const scoreClass = getScoreClass(item.score);
     const date = new Date(item.timestamp).toLocaleDateString();
+    const time = new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const claimNum = item.claimCount || 0;
 
     return `
-      <div class="history-item">
+      <div class="history-item" data-index="${index}">
         <div class="history-score ${scoreClass}">${item.score}</div>
         <div class="history-details">
           <span class="history-domain">${escapeHtml(item.domain || 'Unknown')}</span>
-          <span class="history-date">${date}</span>
-          <span class="history-claims">${claimNum} claim${claimNum !== 1 ? 's' : ''}</span>
+          <span class="history-date">${date} · ${time}</span>
+          <span class="history-claims">${claimNum} claim${claimNum !== 1 ? 's' : ''} verified</span>
         </div>
+        <span class="history-arrow">→</span>
       </div>
     `;
   }).join('');
+
+  // Click handler for history items
+  historyList.querySelectorAll('.history-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const index = parseInt(item.dataset.index);
+      const entry = history[index];
+      if (entry && entry.fullResults) {
+        // Switch to results tab and show the historical results
+        tabs.forEach(t => t.classList.remove('active'));
+        document.querySelector('[data-tab="results"]').classList.add('active');
+        resultsTab.classList.add('active');
+        resultsTab.classList.remove('hidden');
+        historyTab.classList.remove('active');
+        historyTab.classList.add('hidden');
+        showResults(entry.fullResults);
+      }
+    });
+  });
 }
 
 // Helpers

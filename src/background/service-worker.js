@@ -275,10 +275,11 @@ async function saveToHistory(results) {
     title: results.title,
     claimCount: results.claims.length,
     timestamp: results.timestamp,
+    fullResults: results,
   });
 
-  // Keep last 50 entries
-  if (history.length > 50) history.length = 50;
+  // Keep last 20 entries (full results are larger)
+  if (history.length > 20) history.length = 20;
   await chrome.storage.local.set({ [STORAGE_KEY.HISTORY]: history });
 }
 
