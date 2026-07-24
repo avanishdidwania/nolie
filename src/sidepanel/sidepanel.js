@@ -258,6 +258,12 @@ function exportReport() {
 exportBtn.addEventListener('click', exportReport);
 exportResultsBtn.addEventListener('click', exportReport);
 
+// Clear history
+document.getElementById('clearHistoryBtn').addEventListener('click', async () => {
+  await chrome.storage.local.set({ [STORAGE_KEY.HISTORY]: [] });
+  loadHistory();
+});
+
 // History
 async function loadHistory() {
   const data = await chrome.storage.local.get(STORAGE_KEY.HISTORY);
@@ -265,15 +271,18 @@ async function loadHistory() {
 
   const historyList = document.getElementById('historyList');
   const historyEmpty = document.getElementById('historyEmpty');
+  const historyActions = document.getElementById('historyActions');
 
   if (history.length === 0) {
     historyList.classList.add('hidden');
     historyEmpty.classList.remove('hidden');
+    historyActions.classList.add('hidden');
     return;
   }
 
   historyEmpty.classList.add('hidden');
   historyList.classList.remove('hidden');
+  historyActions.classList.remove('hidden');
 
   historyList.innerHTML = history.map((item, index) => {
     const scoreClass = getScoreClass(item.score);

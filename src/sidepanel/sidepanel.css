@@ -265,3 +265,6 @@ body {
 .history-arrow { color: #5a5a5a; font-size: 14px; transition: color 0.15s; }
 .history-item:hover .history-arrow { color: #d4d4d4; }
 .history-details { display: flex; flex-direction: column; flex: 1; }
+
+.history-actions { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
