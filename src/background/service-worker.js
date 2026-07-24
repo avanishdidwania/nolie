@@ -161,45 +161,45 @@ async function handleYouTubeScan(tabId, tab) {
         // Check if transcript panel is already open
         const panels = document.querySelectorAll('ytd-engagement-panel-section-list-renderer');
         for (const p of panels) {
-          if (p.innerText && p.innerText.length > 200 && p.getAttribute('target-id')?.includes('transcript')) {
-            return; // Already open
+          if (p.getAttribute('target-id')?.includes('transcript')) {
+            if (p.getAttribute('visibility') === 'ENGAGEMENT_PANEL_VISIBILITY_EXPANDED') return;
           }
         }
 
-        // Try to find and click the transcript button
-        // Method 1: Click "Show transcript" in description
-        const descButtons = document.querySelectorAll('ytd-video-description-transcript-section-renderer button');
-        if (descButtons.length > 0) {
-          descButtons[0].click();
-          return;
+        // Method 1: Find the "Show transcript" button in the description area
+        const transcriptSection = document.querySelector('ytd-video-description-transcript-section-renderer');
+        if (transcriptSection) {
+          const btn = transcriptSection.querySelector('button');
+          if (btn) { btn.click(); return; }
         }
 
-        // Method 2: Click via the "..." menu under the video
-        const moreBtn = document.querySelector('#button-shape > button[aria-label="More actions"]') 
-          || document.querySelector('ytd-menu-renderer yt-button-shape button');
-        if (moreBtn) {
-          moreBtn.click();
+        // Method 2: Simulate what YouTube does internally to open transcript
+        // Dispatch a custom event that YouTube's app listens to
+        const evt = new CustomEvent('yt-action', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            actionName: 'yt-open-engagement-panel-endpoint',
+            args: [{ engagementPanelPresentationConfigs: { panelIdentifier: 'engagement-panel-searchable-transcript' } }],
+          },
+        });
+        document.querySelector('ytd-app')?.dispatchEvent(evt);
+
+        // Method 3: Click the description "more" to expand, then find transcript
+        const expandBtn = document.querySelector('#expand, tp-yt-paper-button#expand, #description-inline-expander #expand');
+        if (expandBtn && !expandBtn.hidden) {
+          expandBtn.click();
           await new Promise(r => setTimeout(r, 500));
-          const menuItems = document.querySelectorAll('tp-yt-paper-listbox ytd-menu-service-item-renderer, ytd-menu-popup-renderer tp-yt-paper-item');
-          for (const item of menuItems) {
-            if (item.textContent?.toLowerCase().includes('transcript')) {
-              item.click();
-              return;
-            }
+          const section = document.querySelector('ytd-video-description-transcript-section-renderer');
+          if (section) {
+            const b = section.querySelector('button');
+            if (b) b.click();
           }
-          // Close menu if transcript not found
-          document.body.click();
-        }
-
-        // Method 3: Use keyboard shortcut or direct engagement panel trigger
-        const showTranscriptBtn = document.querySelector('[button-renderer][icon-name="yt-icons:transcript"]');
-        if (showTranscriptBtn) {
-          showTranscriptBtn.click();
         }
       },
     });
   } catch (e) {
-    // Continue anyway — maybe panel is already open
+    // Continue anyway
   }
 
   // Wait for transcript panel to load
@@ -213,62 +213,17 @@ async function handleYouTubeScan(tabId, tab) {
       world: 'MAIN',
       func: async () => {
         try {
-          // Debug: find all possible transcript-related elements
-          const selectors = [
-            'ytd-transcript-segment-renderer',
-            'ytd-transcript-segment-list-renderer',
-            '[target-id="engagement-panel-searchable-transcript"]',
-            '#segments-container',
-            '.segment-text',
-            'yt-formatted-string.segment-text',
-            '.ytd-transcript-segment-renderer',
-            'ytd-engagement-panel-section-list-renderer[target-id*="transcript"]',
-            '.cue-group',
-            '[class*="transcript"]',
-            '[class*="caption"]',
-          ];
-
-          const found = {};
-          for (const sel of selectors) {
-            const els = document.querySelectorAll(sel);
-            if (els.length > 0) {
-              found[sel] = els.length;
-            }
-          }
-
-          // Try to get text from any matching elements
-          // Strategy: find the transcript panel and get all text segments
-          const panel = document.querySelector('[target-id="engagement-panel-searchable-transcript"]')
-            || document.querySelector('ytd-engagement-panel-section-list-renderer[target-id*="transcript"]');
-
-          if (panel) {
-            // Get ALL yt-formatted-string inside the panel
-            const allText = panel.querySelectorAll('yt-formatted-string');
-            const texts = Array.from(allText)
-              .map(el => el.textContent.trim())
-              .filter(t => t.length > 0 && !t.match(/^\d+:\d+/)); // filter out timestamps
-
-            if (texts.length > 5) {
-              return { text: texts.join(' '), method: 'panel-text', lines: texts.length };
-            }
-          }
-
-          // Broader search: any element with segment in the class
-          const segEls = document.querySelectorAll('[class*="segment"] yt-formatted-string, [class*="cue"] yt-formatted-string');
-          if (segEls.length > 0) {
-            const text = Array.from(segEls).map(el => el.textContent.trim()).filter(t => t && !t.match(/^\d+:\d+/)).join(' ');
-            if (text.length > 50) return { text, method: 'segment-search', lines: segEls.length };
-          }
-
-          // Last resort: get inner text from the transcript panel area
+          // Check if the transcript panel is actually open and has content
           const panels = document.querySelectorAll('ytd-engagement-panel-section-list-renderer');
           for (const p of panels) {
+            const targetId = p.getAttribute('target-id') || '';
+            if (!targetId.includes('transcript')) continue;
+            
             const innerText = p.innerText;
-            if (innerText && innerText.length > 200 && (innerText.includes('\n') || innerText.includes('  '))) {
-              // Filter out timestamps, UI text, and clean up
+            if (innerText && innerText.length > 200) {
               const lines = innerText.split('\n')
                 .map(l => l.trim())
-                .filter(l => l.length > 0
+                .filter(l => l.length > 2
                   && !l.match(/^\d+:\d+/)
                   && !l.match(/^\d+\s*seconds?$/i)
                   && !l.match(/^\d+\s*minutes?$/i)
@@ -277,7 +232,6 @@ async function handleYouTubeScan(tabId, tab) {
                   && !l.match(/^Search in video$/i)
                   && !l.match(/^Follow along/i)
                   && !l.match(/^Auto-scroll/i)
-                  && l.length > 2
                 );
               if (lines.length > 5) {
                 return { text: lines.join(' '), method: 'panel-innertext', lines: lines.length };
@@ -285,7 +239,7 @@ async function handleYouTubeScan(tabId, tab) {
             }
           }
 
-          return { error: 'No transcript found', foundSelectors: JSON.stringify(found) };
+          return { error: 'no-panel' };
         } catch (e) { return { error: e.message }; }
       },
       args: [],
@@ -294,8 +248,8 @@ async function handleYouTubeScan(tabId, tab) {
     console.log('[NoLie] Transcript fetch result:', fetchData);
     if (fetchData?.text) {
       transcript = fetchData.text;
-    } else if (fetchData?.error) {
-      broadcast({ type: MSG.SCAN_ERROR, error: 'Could not extract transcript. Try clicking "Show transcript" under the video first, then scan again.' });
+    } else if (fetchData?.error === 'no-panel') {
+      broadcast({ type: MSG.SCAN_ERROR, error: 'Could not open transcript automatically. Please click "Show transcript" under the video description, then try scanning again.' });
       return;
     }
   } catch (e) {
