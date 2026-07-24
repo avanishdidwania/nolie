@@ -1,4 +1,5 @@
 import { MSG } from '../lib/constants.js';
+import { isYouTubePage, extractTranscript, getVideoMetadata, getVideoId } from './youtube.js';
 
 // Mark this script as loaded
 window.__nolie_loaded = true;
@@ -9,6 +10,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     const content = extractPageContent();
     sendResponse(content);
     return true;
+  }
+
+  if (msg.type === 'EXTRACT_YOUTUBE_TRANSCRIPT') {
+    extractTranscript().then(transcript => {
+      const metadata = getVideoMetadata();
+      sendResponse({ transcript, metadata, videoId: getVideoId() });
+    });
+    return true; // async response
   }
 
   if (msg.type === MSG.APPLY_HEATMAP) {

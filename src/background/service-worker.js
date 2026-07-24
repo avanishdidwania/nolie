@@ -49,13 +49,10 @@ async function handlePageScan(tabId) {
       await chrome.scripting.executeScript({
         target: { tabId },
         func: () => {
-          // Check if content script is already loaded
           return !!window.__nolie_loaded;
         },
       });
-      // If we get here, we can communicate with the tab
     } catch (e) {
-      // Can't execute on this page
       broadcast({ type: MSG.SCAN_ERROR, error: 'Cannot scan this page. Try refreshing or navigate to a regular web page.' });
       return;
     }
@@ -63,7 +60,16 @@ async function handlePageScan(tabId) {
     // Small delay to ensure content script is ready
     await new Promise(r => setTimeout(r, 300));
 
-    // Extract content from page
+    // Check if this is a YouTube page
+    const tab = await chrome.tabs.get(tabId);
+    const isYouTube = tab.url && tab.url.includes('youtube.com/watch');
+
+    if (isYouTube) {
+      await handleYouTubeScan(tabId, tab);
+      return;
+    }
+
+    // Regular article scan
     const content = await chrome.tabs.sendMessage(tabId, { type: MSG.EXTRACT_CONTENT });
 
     if (!content || !content.text) {
@@ -84,6 +90,37 @@ async function handlePageScan(tabId) {
       broadcast({ type: MSG.SCAN_ERROR, error: 'Failed to scan page: ' + e.message });
     }
   }
+}
+
+async function handleYouTubeScan(tabId, tab) {
+  broadcast({ type: MSG.SCAN_PROGRESS, text: 'Extracting YouTube transcript...', progress: 15 });
+
+  const response = await chrome.tabs.sendMessage(tabId, { type: 'EXTRACT_YOUTUBE_TRANSCRIPT' });
+
+  if (!response || !response.transcript) {
+    broadcast({ type: MSG.SCAN_ERROR, error: 'Could not extract transcript from this video. It may not have captions available.' });
+    return;
+  }
+
+  broadcast({ type: MSG.SCAN_PROGRESS, text: `Transcript extracted (${response.transcript.split(' ').length} words). Analyzing...`, progress: 25 });
+
+  const content = {
+    text: response.transcript,
+    images: [],
+    videos: [{
+      type: 'youtube',
+      id: response.videoId,
+      title: response.metadata?.title || '',
+      thumbnail: response.videoId ? `https://img.youtube.com/vi/${response.videoId}/maxresdefault.jpg` : '',
+    }],
+    metadata: {
+      domain: 'youtube.com',
+      url: tab.url,
+      title: response.metadata?.title || tab.title,
+    },
+  };
+
+  await runPipeline(content);
 }
 
 async function handleSelectionScan(text, tab) {
