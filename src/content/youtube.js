@@ -1,46 +1,46 @@
 /**
  * YouTube transcript extraction.
- * Extracts captions/transcript from a YouTube video page
- * by reading the embedded player data (no API key needed).
+ * Works with both manual and auto-generated captions.
+ * No API key needed. No script injection (avoids CSP issues).
+ * Fetches the page source directly and parses caption URLs from it.
  */
 
-/**
- * Check if we're on a YouTube video page
- */
 export function isYouTubePage() {
   return window.location.hostname === 'www.youtube.com' &&
     window.location.pathname === '/watch';
 }
 
-/**
- * Get the video ID from the current YouTube page
- */
 export function getVideoId() {
   const params = new URLSearchParams(window.location.search);
   return params.get('v');
 }
 
 /**
- * Extract transcript from the current YouTube page.
- * Returns the full transcript text or null if unavailable.
+ * Main entry: extract transcript from current YouTube video.
  */
 export async function extractTranscript() {
+  const videoId = getVideoId();
+  if (!videoId) return null;
+
   try {
-    // Method 1: Extract from ytInitialPlayerResponse in page scripts
-    const captionUrl = getCaptionUrlFromPage();
-    if (captionUrl) {
-      const transcript = await fetchTranscriptFromUrl(captionUrl);
-      if (transcript) return transcript;
+    // Fetch the YouTube page HTML to extract caption track URL
+    const pageUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    const res = await fetch(pageUrl);
+    if (!res.ok) return null;
+    const html = await res.text();
+
+    // Extract caption tracks from the page source
+    const captionUrl = extractCaptionUrl(html);
+    if (!captionUrl) {
+      console.log('[NoLie] No caption tracks found in page source');
+      return null;
     }
 
-    // Method 2: Try fetching from the timedtext endpoint directly
-    const videoId = getVideoId();
-    if (videoId) {
-      const transcript = await fetchTranscriptDirect(videoId);
-      if (transcript) return transcript;
-    }
+    console.log('[NoLie] Found caption URL, fetching transcript...');
 
-    return null;
+    // Fetch transcript in JSON3 format
+    const transcript = await fetchTranscript(captionUrl);
+    return transcript;
   } catch (e) {
     console.error('[NoLie] Transcript extraction failed:', e);
     return null;
@@ -48,98 +48,96 @@ export async function extractTranscript() {
 }
 
 /**
- * Extract caption track URL from page's embedded player data
+ * Extract caption URL from raw YouTube page HTML.
+ * Looks for captionTracks in the ytInitialPlayerResponse JSON.
  */
-function getCaptionUrlFromPage() {
-  try {
-    // YouTube stores player data in script tags
-    const scripts = document.querySelectorAll('script');
-    for (const script of scripts) {
-      const text = script.textContent;
-      if (text && text.includes('captionTracks')) {
-        // Extract the caption tracks JSON
-        const match = text.match(/"captionTracks":\s*(\[.*?\])/);
-        if (match) {
-          const tracks = JSON.parse(match[1]);
-          // Prefer English, fall back to first available
-          const enTrack = tracks.find(t =>
-            t.languageCode === 'en' || t.languageCode?.startsWith('en')
-          );
-          const track = enTrack || tracks[0];
-          if (track && track.baseUrl) {
-            return track.baseUrl;
-          }
+function extractCaptionUrl(html) {
+  // Look for captionTracks in the page source
+  const captionMatch = html.match(/"captionTracks":(\[.*?\])/);
+  if (captionMatch) {
+    try {
+      // Fix escaped characters
+      const raw = captionMatch[1].replace(/\\u0026/g, '&').replace(/\\"/g, '"');
+      const tracks = JSON.parse(raw);
+      if (tracks.length > 0) {
+        // Prefer English
+        const en = tracks.find(t => t.languageCode === 'en')
+          || tracks.find(t => t.languageCode && t.languageCode.startsWith('en'))
+          || tracks[0];
+        if (en && en.baseUrl) {
+          return en.baseUrl.replace(/\\u0026/g, '&');
         }
       }
+    } catch (e) {
+      console.error('[NoLie] Failed to parse captionTracks:', e);
     }
-  } catch (e) {
-    console.error('[NoLie] Caption URL extraction error:', e);
   }
+
+  // Fallback: look for timedtext URL directly
+  const timedtextMatch = html.match(/https:\/\/www\.youtube\.com\/api\/timedtext[^"\\]+/);
+  if (timedtextMatch) {
+    return timedtextMatch[0].replace(/\\u0026/g, '&');
+  }
+
   return null;
 }
 
 /**
- * Fetch and parse transcript XML from a caption URL
+ * Fetch transcript from caption URL. Tries JSON3 first, then XML.
  */
-async function fetchTranscriptFromUrl(url) {
+async function fetchTranscript(baseUrl) {
+  // Try JSON3 format
   try {
+    const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + 'fmt=json3';
     const res = await fetch(url);
-    if (!res.ok) return null;
-    const xml = await res.text();
-    return parseTranscriptXml(xml);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.events) {
+        const lines = data.events
+          .filter(e => e.segs)
+          .map(e => e.segs.map(s => s.utf8 || '').join(''))
+          .map(t => t.replace(/\n/g, ' ').trim())
+          .filter(t => t.length > 0);
+        if (lines.length > 0) {
+          return lines.join(' ');
+        }
+      }
+    }
   } catch (e) {
-    return null;
+    console.log('[NoLie] JSON3 fetch failed, trying XML...');
   }
-}
 
-/**
- * Try fetching transcript directly via timedtext endpoint
- */
-async function fetchTranscriptDirect(videoId) {
-  const url = `https://www.youtube.com/api/timedtext?lang=en&v=${videoId}`;
+  // Fallback: XML format
   try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const xml = await res.text();
-    if (!xml || xml.length < 50) return null;
-    return parseTranscriptXml(xml);
+    const res = await fetch(baseUrl);
+    if (res.ok) {
+      const xml = await res.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xml, 'text/xml');
+      const nodes = doc.querySelectorAll('text');
+      if (nodes.length > 0) {
+        const lines = [];
+        for (const node of nodes) {
+          let text = node.textContent || '';
+          text = text.replace(/\n/g, ' ').trim();
+          if (text) lines.push(text);
+        }
+        return lines.join(' ');
+      }
+    }
   } catch (e) {
-    return null;
+    console.log('[NoLie] XML fetch also failed');
   }
+
+  return null;
 }
 
 /**
- * Parse YouTube's TimedText XML format into plain text
- */
-function parseTranscriptXml(xml) {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(xml, 'text/xml');
-  const textElements = doc.querySelectorAll('text');
-
-  if (textElements.length === 0) return null;
-
-  const lines = [];
-  for (const el of textElements) {
-    let text = el.textContent || '';
-    // Decode HTML entities
-    text = text.replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/\n/g, ' ')
-      .trim();
-    if (text) lines.push(text);
-  }
-
-  return lines.join(' ');
-}
-
-/**
- * Get video metadata from the page
+ * Get video metadata from the page.
  */
 export function getVideoMetadata() {
-  const title = document.querySelector('h1.ytd-video-primary-info-renderer yt-formatted-string')?.textContent
+  const title = document.querySelector('#title h1 yt-formatted-string')?.textContent
+    || document.querySelector('h1.ytd-video-primary-info-renderer yt-formatted-string')?.textContent
     || document.querySelector('meta[name="title"]')?.content
     || document.title.replace(' - YouTube', '');
 

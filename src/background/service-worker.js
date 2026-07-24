@@ -95,28 +95,179 @@ async function handlePageScan(tabId) {
 async function handleYouTubeScan(tabId, tab) {
   broadcast({ type: MSG.SCAN_PROGRESS, text: 'Extracting YouTube transcript...', progress: 15 });
 
-  const response = await chrome.tabs.sendMessage(tabId, { type: 'EXTRACT_YOUTUBE_TRANSCRIPT' });
+  // Use executeScript with MAIN world to access YouTube's global variables
+  let captionUrl = null;
+  try {
+    const [result] = await chrome.scripting.executeScript({
+      target: { tabId },
+      world: 'MAIN',
+      func: () => {
+        try {
+          // Try multiple sources for player response
+          const sources = [
+            window.ytInitialPlayerResponse,
+            document.querySelector('#movie_player')?.getPlayerResponse?.(),
+          ].filter(Boolean);
 
-  if (!response || !response.transcript) {
-    broadcast({ type: MSG.SCAN_ERROR, error: 'Could not extract transcript from this video. It may not have captions available.' });
+          for (const pr of sources) {
+            const tracks = pr?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+            if (tracks && tracks.length > 0) {
+              const en = tracks.find(t => t.languageCode === 'en')
+                || tracks.find(t => t.languageCode?.startsWith('en'))
+                || tracks[0];
+              if (en?.baseUrl) return { url: en.baseUrl, lang: en.languageCode, kind: en.kind || 'manual' };
+            }
+          }
+
+          // Last resort: search for it in page source
+          const html = document.documentElement.innerHTML;
+          const m = html.match(/"captionTracks":(\[.*?\])/);
+          if (m) {
+            const tracks = JSON.parse(m[1].replace(/\\u0026/g, '&'));
+            const en = tracks.find(t => t.languageCode === 'en') || tracks[0];
+            if (en?.baseUrl) return { url: en.baseUrl.replace(/\\u0026/g, '&'), lang: en.languageCode, kind: en.kind || 'unknown' };
+          }
+
+          return null;
+        } catch (e) { return { error: e.message }; }
+      },
+    });
+    const data = result?.result;
+    if (data?.error) {
+      broadcast({ type: MSG.SCAN_ERROR, error: 'YouTube data access error: ' + data.error });
+      return;
+    }
+    captionUrl = data?.url;
+    console.log('[NoLie] Caption data:', data);
+  } catch (e) {
+    broadcast({ type: MSG.SCAN_ERROR, error: 'Cannot access YouTube page data. Try refreshing the page.' });
     return;
   }
 
-  broadcast({ type: MSG.SCAN_PROGRESS, text: `Transcript extracted (${response.transcript.split(' ').length} words). Analyzing...`, progress: 25 });
+  if (!captionUrl) {
+    broadcast({ type: MSG.SCAN_ERROR, error: 'Could not find captions for this video. It may not have subtitles available.' });
+    return;
+  }
+
+  // Fetch transcript by opening YouTube's transcript panel and reading DOM
+  broadcast({ type: MSG.SCAN_PROGRESS, text: 'Extracting transcript...', progress: 20 });
+  let transcript = null;
+  try {
+    const [fetchResult] = await chrome.scripting.executeScript({
+      target: { tabId },
+      world: 'MAIN',
+      func: async () => {
+        try {
+          // Debug: find all possible transcript-related elements
+          const selectors = [
+            'ytd-transcript-segment-renderer',
+            'ytd-transcript-segment-list-renderer',
+            '[target-id="engagement-panel-searchable-transcript"]',
+            '#segments-container',
+            '.segment-text',
+            'yt-formatted-string.segment-text',
+            '.ytd-transcript-segment-renderer',
+            'ytd-engagement-panel-section-list-renderer[target-id*="transcript"]',
+            '.cue-group',
+            '[class*="transcript"]',
+            '[class*="caption"]',
+          ];
+
+          const found = {};
+          for (const sel of selectors) {
+            const els = document.querySelectorAll(sel);
+            if (els.length > 0) {
+              found[sel] = els.length;
+            }
+          }
+
+          // Try to get text from any matching elements
+          // Strategy: find the transcript panel and get all text segments
+          const panel = document.querySelector('[target-id="engagement-panel-searchable-transcript"]')
+            || document.querySelector('ytd-engagement-panel-section-list-renderer[target-id*="transcript"]');
+
+          if (panel) {
+            // Get ALL yt-formatted-string inside the panel
+            const allText = panel.querySelectorAll('yt-formatted-string');
+            const texts = Array.from(allText)
+              .map(el => el.textContent.trim())
+              .filter(t => t.length > 0 && !t.match(/^\d+:\d+/)); // filter out timestamps
+
+            if (texts.length > 5) {
+              return { text: texts.join(' '), method: 'panel-text', lines: texts.length };
+            }
+          }
+
+          // Broader search: any element with segment in the class
+          const segEls = document.querySelectorAll('[class*="segment"] yt-formatted-string, [class*="cue"] yt-formatted-string');
+          if (segEls.length > 0) {
+            const text = Array.from(segEls).map(el => el.textContent.trim()).filter(t => t && !t.match(/^\d+:\d+/)).join(' ');
+            if (text.length > 50) return { text, method: 'segment-search', lines: segEls.length };
+          }
+
+          // Last resort: get inner text from the transcript panel area
+          const panels = document.querySelectorAll('ytd-engagement-panel-section-list-renderer');
+          for (const p of panels) {
+            const innerText = p.innerText;
+            if (innerText && innerText.length > 200 && (innerText.includes('\n') || innerText.includes('  '))) {
+              // Filter out timestamps, UI text, and clean up
+              const lines = innerText.split('\n')
+                .map(l => l.trim())
+                .filter(l => l.length > 0
+                  && !l.match(/^\d+:\d+/)
+                  && !l.match(/^\d+\s*seconds?$/i)
+                  && !l.match(/^\d+\s*minutes?$/i)
+                  && !l.match(/^Transcript$/i)
+                  && !l.match(/^Search transcript$/i)
+                  && !l.match(/^Follow along/i)
+                  && l.length > 2
+                );
+              if (lines.length > 5) {
+                return { text: lines.join(' '), method: 'panel-innertext', lines: lines.length };
+              }
+            }
+          }
+
+          return { error: 'No transcript found', foundSelectors: JSON.stringify(found) };
+        } catch (e) { return { error: e.message }; }
+      },
+      args: [],
+    });
+    const fetchData = fetchResult?.result;
+    console.log('[NoLie] Transcript fetch result:', fetchData);
+    if (fetchData?.text) {
+      transcript = fetchData.text;
+    } else if (fetchData?.error) {
+      broadcast({ type: MSG.SCAN_ERROR, error: 'Could not extract transcript. Try clicking "Show transcript" under the video first, then scan again.' });
+      return;
+    }
+  } catch (e) {
+    broadcast({ type: MSG.SCAN_ERROR, error: 'Failed to extract transcript: ' + e.message });
+    return;
+  }
+
+  if (!transcript || transcript.length < 50) {
+    broadcast({ type: MSG.SCAN_ERROR, error: 'Transcript is empty or too short to analyze.' });
+    return;
+  }
+
+  // Get video title from tab
+  const videoId = new URL(tab.url).searchParams.get('v');
+  broadcast({ type: MSG.SCAN_PROGRESS, text: `Transcript extracted (${transcript.split(' ').length} words). Analyzing...`, progress: 25 });
 
   const content = {
-    text: response.transcript,
+    text: transcript,
     images: [],
     videos: [{
       type: 'youtube',
-      id: response.videoId,
-      title: response.metadata?.title || '',
-      thumbnail: response.videoId ? `https://img.youtube.com/vi/${response.videoId}/maxresdefault.jpg` : '',
+      id: videoId,
+      title: tab.title?.replace(' - YouTube', '') || '',
+      thumbnail: videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : '',
     }],
     metadata: {
       domain: 'youtube.com',
       url: tab.url,
-      title: response.metadata?.title || tab.title,
+      title: tab.title?.replace(' - YouTube', '') || '',
     },
   };
 
