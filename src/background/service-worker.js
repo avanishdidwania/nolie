@@ -149,7 +149,62 @@ async function handleYouTubeScan(tabId, tab) {
     return;
   }
 
-  // Fetch transcript by opening YouTube's transcript panel and reading DOM
+  // Fetch transcript by auto-opening the transcript panel then reading DOM
+  broadcast({ type: MSG.SCAN_PROGRESS, text: 'Opening transcript panel...', progress: 15 });
+  
+  // First, auto-open the transcript panel
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      world: 'MAIN',
+      func: async () => {
+        // Check if transcript panel is already open
+        const panels = document.querySelectorAll('ytd-engagement-panel-section-list-renderer');
+        for (const p of panels) {
+          if (p.innerText && p.innerText.length > 200 && p.getAttribute('target-id')?.includes('transcript')) {
+            return; // Already open
+          }
+        }
+
+        // Try to find and click the transcript button
+        // Method 1: Click "Show transcript" in description
+        const descButtons = document.querySelectorAll('ytd-video-description-transcript-section-renderer button');
+        if (descButtons.length > 0) {
+          descButtons[0].click();
+          return;
+        }
+
+        // Method 2: Click via the "..." menu under the video
+        const moreBtn = document.querySelector('#button-shape > button[aria-label="More actions"]') 
+          || document.querySelector('ytd-menu-renderer yt-button-shape button');
+        if (moreBtn) {
+          moreBtn.click();
+          await new Promise(r => setTimeout(r, 500));
+          const menuItems = document.querySelectorAll('tp-yt-paper-listbox ytd-menu-service-item-renderer, ytd-menu-popup-renderer tp-yt-paper-item');
+          for (const item of menuItems) {
+            if (item.textContent?.toLowerCase().includes('transcript')) {
+              item.click();
+              return;
+            }
+          }
+          // Close menu if transcript not found
+          document.body.click();
+        }
+
+        // Method 3: Use keyboard shortcut or direct engagement panel trigger
+        const showTranscriptBtn = document.querySelector('[button-renderer][icon-name="yt-icons:transcript"]');
+        if (showTranscriptBtn) {
+          showTranscriptBtn.click();
+        }
+      },
+    });
+  } catch (e) {
+    // Continue anyway — maybe panel is already open
+  }
+
+  // Wait for transcript panel to load
+  await new Promise(r => setTimeout(r, 2500));
+
   broadcast({ type: MSG.SCAN_PROGRESS, text: 'Extracting transcript...', progress: 20 });
   let transcript = null;
   try {
