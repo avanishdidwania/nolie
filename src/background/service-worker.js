@@ -219,7 +219,9 @@ async function handleYouTubeScan(tabId, tab) {
                   && !l.match(/^\d+\s*minutes?$/i)
                   && !l.match(/^Transcript$/i)
                   && !l.match(/^Search transcript$/i)
+                  && !l.match(/^Search in video$/i)
                   && !l.match(/^Follow along/i)
+                  && !l.match(/^Auto-scroll/i)
                   && l.length > 2
                 );
               if (lines.length > 5) {
