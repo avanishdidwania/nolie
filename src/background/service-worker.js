@@ -45,7 +45,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     handleStopLive(msg.tabId);
   }
   if (msg.type === 'LIVE_BATCH') {
-    handleLiveBatch(msg.text, msg.timestamp);
+    handleLiveBatch(msg.text, msg.timestamp, msg.context);
   }
 });
 
@@ -485,7 +485,7 @@ async function handleStopLive(tabId) {
   } catch {}
 }
 
-async function handleLiveBatch(text, timestamp) {
+async function handleLiveBatch(text, timestamp, context) {
   if (!liveMode || !text) return;
 
   const groqKey = await getGroqKey();
@@ -507,8 +507,8 @@ async function handleLiveBatch(text, timestamp) {
 
     if (newClaims.length === 0) return;
 
-    // Verify new claims with context
-    const verified = await groqVerifyClaims(newClaims, groqKey, text);
+    // Verify new claims with full running context (last ~2 min)
+    const verified = await groqVerifyClaims(newClaims, groqKey, context || text);
 
     // Send each verified claim to the side panel
     broadcast({

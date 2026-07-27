@@ -6,6 +6,7 @@
 let liveActive = false;
 let observer = null;
 let captionBuffer = [];
+let fullTranscript = []; // Running full transcript for context
 let lastSentText = '';
 const BATCH_SIZE = 6; // Send every N caption segments
 const MIN_BATCH_LENGTH = 80; // Minimum characters before sending
@@ -17,6 +18,7 @@ export function startLiveFactCheck() {
   if (liveActive) return;
   liveActive = true;
   captionBuffer = [];
+  fullTranscript = [];
   lastSentText = '';
 
   // Watch the caption overlay (subtitles displayed on video)
@@ -135,6 +137,7 @@ function observeTranscriptPanel() {
 function addCaptionText(text) {
   if (!text || text.length < 3) return;
   captionBuffer.push(text);
+  fullTranscript.push(text);
 
   // Send batch when we have enough
   if (captionBuffer.length >= BATCH_SIZE) {
@@ -143,7 +146,9 @@ function addCaptionText(text) {
     // Don't send if it's too similar to last sent text
     if (batchText.length >= MIN_BATCH_LENGTH && batchText !== lastSentText) {
       lastSentText = batchText;
-      sendBatchForVerification(batchText);
+      // Send batch text + last ~2 min of context (last 30 segments)
+      const contextWindow = fullTranscript.slice(-30).join(' ');
+      sendBatchForVerification(batchText, contextWindow);
       // Keep last 2 segments as overlap for context continuity
       captionBuffer = captionBuffer.slice(-2);
     }
@@ -153,10 +158,11 @@ function addCaptionText(text) {
 /**
  * Send a batch of transcript text to the service worker for fact-checking.
  */
-function sendBatchForVerification(text) {
+function sendBatchForVerification(text, context) {
   chrome.runtime.sendMessage({
     type: 'LIVE_BATCH',
     text: text,
+    context: context,
     timestamp: Date.now(),
   }).catch(() => {});
 }
