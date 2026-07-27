@@ -77,6 +77,17 @@
         </div>
         <div id="liveClaims" class="live-claims"></div>
       </div>
+      <div id="liveStopped" class="live-stopped hidden">
+        <div class="live-stopped-header">
+          <span class="live-stopped-label">Session ended</span>
+          <span id="liveClaimCount" class="badge">0</span>
+        </div>
+        <div class="live-stopped-actions">
+          <button id="exportLiveBtn" class="btn btn-secondary">📥 Export Session</button>
+          <button id="restartLiveBtn" class="btn btn-secondary">⚡ New Session</button>
+        </div>
+        <div id="liveStoppedClaims" class="live-claims"></div>
+      </div>
     </div>
     <div id="historyTab" class="tab-content hidden">
       <div id="historyActions" class="history-actions hidden">

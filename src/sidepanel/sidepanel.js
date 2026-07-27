@@ -73,7 +73,7 @@ chrome.runtime.onMessage.addListener((message) => {
       showLiveActive();
       break;
     case 'LIVE_STOPPED':
-      showLiveInactive();
+      showLiveStopped();
       break;
     case 'LIVE_CLAIMS':
       appendLiveClaims(message.claims);
@@ -354,11 +354,12 @@ function getVerdictClass(verdict) {
 // -- Live Fact-Check --
 
 let liveClaimIndex = 0;
+let liveClaimsData = []; // Store all claims for export/history
 
 document.getElementById('startLiveBtn').addEventListener('click', async () => {
   const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
   if (!tab || !tab.url?.includes('youtube.com/watch')) {
-    alert('Live fact-check only works on YouTube video pages.');
+    alert('Live fact-check only works on YouTube video pages. Make sure captions (CC) are enabled.');
     return;
   }
   chrome.runtime.sendMessage({ type: 'START_LIVE', tabId: tab.id });
@@ -369,22 +370,101 @@ document.getElementById('stopLiveBtn').addEventListener('click', async () => {
   chrome.runtime.sendMessage({ type: 'STOP_LIVE', tabId: tab?.id });
 });
 
+document.getElementById('exportLiveBtn').addEventListener('click', () => {
+  if (liveClaimsData.length === 0) return;
+  const results = {
+    score: calculateLiveScore(),
+    claims: liveClaimsData,
+    images: [],
+    videos: [],
+    source: null,
+    bias: null,
+    domain: 'youtube.com',
+    url: '',
+    title: 'Live Fact-Check Session',
+    timestamp: Date.now(),
+  };
+  const html = generateHtmlReport(results);
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `nolie-live-${new Date().toISOString().replace(/[:.]/g, '-')}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('restartLiveBtn').addEventListener('click', () => {
+  showLiveInactive();
+});
+
 function showLiveActive() {
   document.getElementById('liveInactive').classList.add('hidden');
   document.getElementById('liveActive').classList.remove('hidden');
+  document.getElementById('liveStopped').classList.add('hidden');
   document.getElementById('liveClaims').innerHTML = '';
   liveClaimIndex = 0;
+  liveClaimsData = [];
 }
 
 function showLiveInactive() {
   document.getElementById('liveInactive').classList.remove('hidden');
   document.getElementById('liveActive').classList.add('hidden');
+  document.getElementById('liveStopped').classList.add('hidden');
+}
+
+function showLiveStopped() {
+  document.getElementById('liveInactive').classList.add('hidden');
+  document.getElementById('liveActive').classList.add('hidden');
+  document.getElementById('liveStopped').classList.remove('hidden');
+  document.getElementById('liveClaimCount').textContent = liveClaimsData.length;
+  document.getElementById('liveStoppedClaims').innerHTML = document.getElementById('liveClaims').innerHTML;
+
+  // Save to history
+  if (liveClaimsData.length > 0) {
+    const results = {
+      score: calculateLiveScore(),
+      claims: liveClaimsData,
+      images: [],
+      videos: [],
+      source: null,
+      bias: null,
+      domain: 'youtube.com',
+      url: '',
+      title: 'Live Fact-Check Session',
+      timestamp: Date.now(),
+      claimCount: liveClaimsData.length,
+    };
+    chrome.storage.local.get(STORAGE_KEY.HISTORY).then(data => {
+      const history = data[STORAGE_KEY.HISTORY] || [];
+      history.unshift({
+        score: results.score,
+        domain: 'youtube.com (live)',
+        url: '',
+        title: 'Live Session',
+        claimCount: liveClaimsData.length,
+        timestamp: Date.now(),
+        fullResults: results,
+      });
+      if (history.length > 20) history.length = 20;
+      chrome.storage.local.set({ [STORAGE_KEY.HISTORY]: history });
+    });
+  }
+}
+
+function calculateLiveScore() {
+  if (liveClaimsData.length === 0) return 50;
+  const scores = { TRUE: 100, MISLEADING: 40, UNVERIFIABLE: 50, FALSE: 0 };
+  const total = liveClaimsData.reduce((sum, c) => sum + (scores[c.verdict] ?? 50), 0);
+  return Math.round(total / liveClaimsData.length);
 }
 
 function appendLiveClaims(claims) {
   const container = document.getElementById('liveClaims');
   for (const claim of claims) {
     liveClaimIndex++;
+    liveClaimsData.push(claim);
+
     const verdictClass = getVerdictClass(claim.verdict);
     const sources = (claim.sources || []).map((s) => {
       const src = String(s);
@@ -408,6 +488,6 @@ function appendLiveClaims(claims) {
       <p class="claim-explanation">${escapeHtml(claim.explanation || '')}</p>
       ${sources ? `<div class="claim-sources">${sources}</div>` : ''}
     `;
-    container.prepend(card); // newest first
+    container.prepend(card);
   }
 }

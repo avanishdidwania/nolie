@@ -307,3 +307,17 @@ body {
   from { opacity: 0; transform: translateY(-10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+
+/* Live stopped state */
+.live-stopped { padding: 0; }
+.live-stopped-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; background: #222222; border-bottom: 1px solid #2e2e2e;
+}
+.live-stopped-label { font-size: 13px; font-weight: 500; color: #a0a0a0; }
+.live-stopped-actions {
+  display: flex; gap: 8px; padding: 12px 16px;
+  border-bottom: 1px solid #2e2e2e;
+}
+.live-stopped-actions .btn { flex: 1; padding: 8px; font-size: 12px; }
