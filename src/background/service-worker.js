@@ -1,5 +1,5 @@
 import { MSG, STORAGE_KEY, MODEL } from '../lib/constants.js';
-import { extractClaims as groqExtractClaims, verifyClaims as groqVerifyClaims } from '../lib/groq.js';
+import { extractClaims as groqExtractClaims, verifyClaims as groqVerifyClaims, extractLiveClaims as groqExtractLiveClaims } from '../lib/groq.js';
 import { analyzeImages as aiAnalyzeImages, analyzeVideos as aiAnalyzeVideos } from '../lib/gemini.js';
 import { lookupDomain } from '../lib/mbfc.js';
 
@@ -492,8 +492,8 @@ async function handleLiveBatch(text, timestamp) {
   if (!groqKey) return;
 
   try {
-    // Extract claims from the batch
-    const claims = await groqExtractClaims(text, groqKey, 3);
+    // Extract claims from the batch (use stricter live prompt)
+    const claims = await groqExtractLiveClaims(text, groqKey);
 
     if (!claims || claims.length === 0) return;
 

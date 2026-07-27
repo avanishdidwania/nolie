@@ -72,6 +72,55 @@ export async function extractClaims(text, apiKey, maxClaims = 10) {
   return [];
 }
 
+// ─── LIVE CLAIM EXTRACTION (stricter) ─────────────────────────────────────────
+
+const LIVE_EXTRACT_SYSTEM = `You are a fact-checking assistant monitoring live speech. You ONLY extract claims that are genuinely check-worthy. Be VERY selective — most speech contains no verifiable claims. Return ONLY a JSON object.`;
+
+const LIVE_EXTRACT_USER = `This is a short segment from live speech/video. Extract ONLY genuinely check-worthy factual claims — if there are NONE, return an empty array.
+
+EXTRACT only:
+- Specific statistics or numbers ("unemployment is 5%", "40 people died")
+- Named events with details ("the bill passed in 2021")
+- Government/official actions ("PM announced a new policy")
+- Historical facts being stated ("India got independence in 1947")
+- Scientific/medical claims ("this drug cures cancer")
+
+DO NOT extract:
+- Greetings, introductions, pleasantries
+- Opinions ("I think this is bad")
+- Vague statements without specifics ("things are getting worse")
+- Predictions or promises ("we will do better")
+- Questions being asked
+- Commentary or analysis without specific facts
+- Self-referential statements ("I've been doing this for years")
+- Channel/video promotions
+
+If nothing is check-worthy, return: {"claims": []}
+
+Return JSON: {"claims": [{"claim": "exact factual claim", "importance": "HIGH|MEDIUM|LOW"}]}
+
+Speech segment:
+---
+{text}
+---`;
+
+export async function extractLiveClaims(text, apiKey) {
+  const userMsg = LIVE_EXTRACT_USER.replace('{text}', text);
+  const response = await callGroq(apiKey, LIVE_EXTRACT_SYSTEM, userMsg);
+
+  try {
+    const parsed = JSON.parse(response);
+    const claims = parsed.claims || parsed;
+    if (Array.isArray(claims)) return claims.slice(0, 3);
+  } catch {
+    const match = response.match(/\[[\s\S]*\]/);
+    if (match) {
+      try { return JSON.parse(match[0]).slice(0, 3); } catch {}
+    }
+  }
+  return [];
+}
+
 // ─── CLAIM VERIFICATION ──────────────────────────────────────────────────────
 
 const VERIFY_SYSTEM = `You are a fact-checking assistant. You will be given a claim extracted from a news article, along with the article context. Use the context plus your knowledge to verify the claim. Be objective and evidence-based. Return ONLY a JSON object.`;
