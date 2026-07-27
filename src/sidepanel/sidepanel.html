@@ -17,6 +17,7 @@
     </header>
     <nav class="tabs">
       <button class="tab active" data-tab="results">Results</button>
+      <button class="tab" data-tab="live">Live</button>
       <button class="tab" data-tab="history">History</button>
     </nav>
     <div id="resultsTab" class="tab-content active">
@@ -59,6 +60,22 @@
         <div class="actions">
           <button id="exportResultsBtn" class="btn btn-secondary">📥 Export Report</button>
         </div>
+      </div>
+    </div>
+    <div id="liveTab" class="tab-content hidden">
+      <div id="liveInactive" class="live-inactive">
+        <div class="empty-icon">⚡</div>
+        <h2>Live Fact-Check</h2>
+        <p>Real-time fact-checking while a YouTube video plays. Enable captions (CC) on the video first.</p>
+        <button id="startLiveBtn" class="btn btn-live">Start Live Fact-Check</button>
+      </div>
+      <div id="liveActive" class="live-active hidden">
+        <div class="live-header">
+          <span class="live-dot"></span>
+          <span class="live-label">Live — watching for claims...</span>
+          <button id="stopLiveBtn" class="btn btn-stop">Stop</button>
+        </div>
+        <div id="liveClaims" class="live-claims"></div>
       </div>
     </div>
     <div id="historyTab" class="tab-content hidden">

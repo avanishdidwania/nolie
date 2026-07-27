@@ -38,6 +38,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === MSG.SCAN_SELECTION) {
     handleSelectionScan(msg.text, { id: msg.tabId });
   }
+  if (msg.type === 'START_LIVE') {
+    handleStartLive(msg.tabId);
+  }
+  if (msg.type === 'STOP_LIVE') {
+    handleStopLive(msg.tabId);
+  }
+  if (msg.type === 'LIVE_BATCH') {
+    handleLiveBatch(msg.text, msg.timestamp);
+  }
 });
 
 async function handlePageScan(tabId) {
@@ -447,6 +456,69 @@ function calculateScore(claims, images, source) {
 async function getSettings() {
   const data = await chrome.storage.local.get(STORAGE_KEY.SETTINGS);
   return data[STORAGE_KEY.SETTINGS] || {};
+}
+
+// -- Live Fact-Checking --
+
+let liveMode = false;
+let liveCheckedClaims = new Set();
+
+async function handleStartLive(tabId) {
+  liveMode = true;
+  liveCheckedClaims = new Set();
+  broadcast({ type: 'LIVE_STARTED' });
+
+  // Tell content script to start observing
+  try {
+    await chrome.tabs.sendMessage(tabId, { type: 'START_LIVE' });
+  } catch (e) {
+    broadcast({ type: MSG.SCAN_ERROR, error: 'Could not start live mode. Refresh the YouTube page and try again.' });
+  }
+}
+
+async function handleStopLive(tabId) {
+  liveMode = false;
+  broadcast({ type: 'LIVE_STOPPED' });
+
+  try {
+    await chrome.tabs.sendMessage(tabId, { type: 'STOP_LIVE' });
+  } catch {}
+}
+
+async function handleLiveBatch(text, timestamp) {
+  if (!liveMode || !text) return;
+
+  const groqKey = await getGroqKey();
+  if (!groqKey) return;
+
+  try {
+    // Extract claims from the batch
+    const claims = await groqExtractClaims(text, groqKey, 3);
+
+    if (!claims || claims.length === 0) return;
+
+    // Filter out claims we've already checked
+    const newClaims = claims.filter(c => {
+      const key = c.claim.toLowerCase().trim().slice(0, 50);
+      if (liveCheckedClaims.has(key)) return false;
+      liveCheckedClaims.add(key);
+      return true;
+    });
+
+    if (newClaims.length === 0) return;
+
+    // Verify new claims with context
+    const verified = await groqVerifyClaims(newClaims, groqKey, text);
+
+    // Send each verified claim to the side panel
+    broadcast({
+      type: 'LIVE_CLAIMS',
+      claims: verified,
+      timestamp,
+    });
+  } catch (e) {
+    console.error('[NoLie] Live batch error:', e);
+  }
 }
 
 // -- Utilities --

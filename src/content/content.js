@@ -1,5 +1,6 @@
 import { MSG } from '../lib/constants.js';
 import { isYouTubePage, extractTranscript, getVideoMetadata, getVideoId } from './youtube.js';
+import { startLiveFactCheck, stopLiveFactCheck } from './live-factcheck.js';
 
 // Mark this script as loaded
 window.__nolie_loaded = true;
@@ -18,6 +19,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       sendResponse({ transcript, metadata, videoId: getVideoId() });
     });
     return true; // async response
+  }
+
+  if (msg.type === 'START_LIVE') {
+    startLiveFactCheck();
+    sendResponse({ ok: true });
+    return true;
+  }
+
+  if (msg.type === 'STOP_LIVE') {
+    stopLiveFactCheck();
+    sendResponse({ ok: true });
+    return true;
   }
 
   if (msg.type === MSG.APPLY_HEATMAP) {

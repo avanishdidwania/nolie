@@ -268,3 +268,42 @@ body {
 
 .history-actions { display: flex; justify-content: flex-end; margin-bottom: 10px; }
 .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+
+/* --- Live Mode --- */
+.live-inactive { text-align: center; padding: 60px 24px; }
+.live-inactive h2 { font-size: 16px; font-weight: 500; color: #c8c8c8; margin-bottom: 6px; }
+.live-inactive p { font-size: 13px; color: #6b6b6b; max-width: 260px; margin: 0 auto 18px; }
+.btn-live {
+  background: #2d4a2d; color: #7ddc7d; border: 1px solid #3d6b3d;
+  padding: 10px 20px; border-radius: 6px; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s;
+}
+.btn-live:hover { background: #3d5a3d; }
+.btn-stop {
+  background: #4a2d2d; color: #dc7d7d; border: 1px solid #6b3d3d;
+  padding: 5px 12px; border-radius: 4px; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s;
+}
+.btn-stop:hover { background: #5a3d3d; }
+.live-active { padding: 0; }
+.live-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 16px; background: #1a2a1a; border-bottom: 1px solid #2e3e2e;
+  position: sticky; top: 0; z-index: 1;
+}
+.live-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: #4daa57;
+  animation: livePulse 1.5s infinite;
+}
+@keyframes livePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.live-label { font-size: 12px; color: #7ddc7d; flex: 1; }
+.live-claims { padding: 12px; }
+.live-claim-card { animation: slideIn 0.3s ease; }
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

@@ -41,18 +41,11 @@ tabs.forEach(tab => {
     tab.classList.add('active');
 
     const target = tab.dataset.tab;
-    if (target === 'results') {
-      resultsTab.classList.add('active');
-      resultsTab.classList.remove('hidden');
-      historyTab.classList.remove('active');
-      historyTab.classList.add('hidden');
-    } else {
-      historyTab.classList.add('active');
-      historyTab.classList.remove('hidden');
-      resultsTab.classList.remove('active');
-      resultsTab.classList.add('hidden');
-      loadHistory();
-    }
+    document.getElementById('resultsTab').classList.toggle('hidden', target !== 'results');
+    document.getElementById('resultsTab').classList.toggle('active', target === 'results');
+    document.getElementById('liveTab').classList.toggle('hidden', target !== 'live');
+    document.getElementById('historyTab').classList.toggle('hidden', target !== 'history');
+    if (target === 'history') loadHistory();
   });
 });
 
@@ -75,6 +68,15 @@ chrome.runtime.onMessage.addListener((message) => {
       break;
     case MSG.GET_HISTORY:
       switchToHistoryTab();
+      break;
+    case 'LIVE_STARTED':
+      showLiveActive();
+      break;
+    case 'LIVE_STOPPED':
+      showLiveInactive();
+      break;
+    case 'LIVE_CLAIMS':
+      appendLiveClaims(message.claims);
       break;
   }
 });
@@ -345,5 +347,67 @@ function getVerdictClass(verdict) {
     case 'MISLEADING': return 'verdict-misleading';
     case 'UNVERIFIABLE': return 'verdict-unverifiable';
     default: return 'verdict-unknown';
+  }
+}
+
+
+// -- Live Fact-Check --
+
+let liveClaimIndex = 0;
+
+document.getElementById('startLiveBtn').addEventListener('click', async () => {
+  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  if (!tab || !tab.url?.includes('youtube.com/watch')) {
+    alert('Live fact-check only works on YouTube video pages.');
+    return;
+  }
+  chrome.runtime.sendMessage({ type: 'START_LIVE', tabId: tab.id });
+});
+
+document.getElementById('stopLiveBtn').addEventListener('click', async () => {
+  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  chrome.runtime.sendMessage({ type: 'STOP_LIVE', tabId: tab?.id });
+});
+
+function showLiveActive() {
+  document.getElementById('liveInactive').classList.add('hidden');
+  document.getElementById('liveActive').classList.remove('hidden');
+  document.getElementById('liveClaims').innerHTML = '';
+  liveClaimIndex = 0;
+}
+
+function showLiveInactive() {
+  document.getElementById('liveInactive').classList.remove('hidden');
+  document.getElementById('liveActive').classList.add('hidden');
+}
+
+function appendLiveClaims(claims) {
+  const container = document.getElementById('liveClaims');
+  for (const claim of claims) {
+    liveClaimIndex++;
+    const verdictClass = getVerdictClass(claim.verdict);
+    const sources = (claim.sources || []).map((s) => {
+      const src = String(s);
+      if (src.startsWith('http')) {
+        const domain = (() => { try { return new URL(src).hostname; } catch { return src; } })();
+        return `<a href="${escapeHtml(src)}" target="_blank" class="source-link">${escapeHtml(domain)}</a>`;
+      }
+      const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(src)}`;
+      return `<a href="${searchUrl}" target="_blank" class="source-link">${escapeHtml(src)}</a>`;
+    }).join('');
+
+    const card = document.createElement('div');
+    card.className = 'claim-card live-claim-card';
+    card.innerHTML = `
+      <div class="claim-header">
+        <span class="claim-number">#${liveClaimIndex}</span>
+        <span class="verdict-badge ${verdictClass}">${escapeHtml(claim.verdict || 'UNKNOWN')}</span>
+        <span class="confidence conf-${(claim.confidence || '').toLowerCase()}">${escapeHtml(claim.confidence || '')}</span>
+      </div>
+      <p class="claim-text">"${escapeHtml(claim.claim || '')}"</p>
+      <p class="claim-explanation">${escapeHtml(claim.explanation || '')}</p>
+      ${sources ? `<div class="claim-sources">${sources}</div>` : ''}
+    `;
+    container.prepend(card); // newest first
   }
 }
