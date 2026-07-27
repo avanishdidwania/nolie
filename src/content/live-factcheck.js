@@ -45,86 +45,30 @@ export function stopLiveFactCheck() {
 
 /**
  * Observe YouTube's caption overlay (the subtitles on the video player).
+ * Uses polling since captions appear/disappear and MutationObserver
+ * can miss the initial container creation.
  */
 function observeCaptions() {
-  // Try multiple selectors for the caption container
-  const selectors = [
-    '.ytp-caption-window-container',
-    '.caption-window',
-    '.ytp-caption-window-bottom',
-    '#ytp-caption-window-container',
-    '.captions-text',
-    '#movie_player .ytp-caption-segment',
-  ];
+  let lastCaptionText = '';
 
-  let container = null;
-  for (const sel of selectors) {
-    container = document.querySelector(sel);
-    if (container) break;
-  }
-
-  if (!container) {
-    // Watch the whole player for caption elements to appear
-    const player = document.querySelector('#movie_player') || document.querySelector('#player-container');
-    if (player) {
-      console.log('[NoLie Live] No caption container found yet, watching player for changes...');
-      const watchForCaptions = new MutationObserver(() => {
-        // Check for any caption-related element
-        const captionEl = player.querySelector('.ytp-caption-segment')
-          || player.querySelector('.caption-window')
-          || player.querySelector('.ytp-caption-window-container')
-          || player.querySelector('[class*="caption"]');
-        if (captionEl) {
-          console.log('[NoLie Live] Found caption element:', captionEl.className);
-          watchForCaptions.disconnect();
-          const captionContainer = captionEl.closest('.ytp-caption-window-container')
-            || captionEl.closest('.caption-window')
-            || captionEl.parentElement?.parentElement
-            || captionEl.parentElement;
-          attachCaptionObserver(captionContainer || captionEl);
-        }
-      });
-      watchForCaptions.observe(player, { childList: true, subtree: true });
-    }
-  } else {
-    console.log('[NoLie Live] Found caption container:', container.className);
-    attachCaptionObserver(container);
-  }
-}
-
-/**
- * Attach MutationObserver to the caption container.
- */
-function attachCaptionObserver(container) {
-  if (observer) observer.disconnect();
-
-  console.log('[NoLie Live] Attaching observer to:', container.tagName, container.className);
-
-  observer = new MutationObserver((mutations) => {
-    if (!liveActive) return;
-
-    // Get ALL text from the caption container on any change
-    const segments = container.querySelectorAll('.ytp-caption-segment');
-    if (segments.length > 0) {
-      const currentText = Array.from(segments).map(s => s.textContent.trim()).join(' ');
-      if (currentText && currentText.length > 3 && currentText !== captionBuffer[captionBuffer.length - 1]) {
-        addCaptionText(currentText);
-      }
+  // Poll every 1 second for caption text
+  const pollInterval = setInterval(() => {
+    if (!liveActive) {
+      clearInterval(pollInterval);
       return;
     }
 
-    // Fallback: just get innerText of the container
-    const innerText = container.innerText?.trim();
-    if (innerText && innerText.length > 3 && innerText !== captionBuffer[captionBuffer.length - 1]) {
-      addCaptionText(innerText);
-    }
-  });
+    const segments = document.querySelectorAll('.ytp-caption-segment');
+    if (segments.length === 0) return;
 
-  observer.observe(container, {
-    childList: true,
-    subtree: true,
-    characterData: true,
-  });
+    const currentText = Array.from(segments).map(s => s.textContent.trim()).join(' ');
+    if (currentText && currentText.length > 3 && currentText !== lastCaptionText) {
+      lastCaptionText = currentText;
+      addCaptionText(currentText);
+    }
+  }, 1000);
+
+  console.log('[NoLie Live] Caption polling started');
 }
 
 /**
