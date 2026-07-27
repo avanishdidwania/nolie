@@ -516,12 +516,9 @@ async function processLiveQueue() {
       // Extract claims
       const claims = await groqExtractLiveClaims(batch.text, groqKey);
 
-      // Wait 3 seconds between extract and verify to respect rate limits
-      await new Promise(r => setTimeout(r, 3000));
-
       if (!claims || claims.length === 0 || !liveMode) {
-        // Wait before processing next batch even if no claims found
-        await new Promise(r => setTimeout(r, 5000));
+        // Short wait then move to next batch
+        await new Promise(r => setTimeout(r, 2000));
         continue;
       }
 
@@ -534,49 +531,45 @@ async function processLiveQueue() {
       });
 
       if (newClaims.length === 0) {
-        await new Promise(r => setTimeout(r, 5000));
+        await new Promise(r => setTimeout(r, 2000));
         continue;
       }
 
-      // Verify — one at a time with delays
-      const verified = [];
-      for (const claim of newClaims) {
-        if (!liveMode) break;
-        try {
-          const result = await groqVerifyClaims([claim], groqKey, batch.context || batch.text);
-          verified.push(...result);
-        } catch (e) {
-          if (e.message.includes('Rate limit') || e.message.includes('429')) {
-            // Hit rate limit — wait 60 seconds and retry
-            await new Promise(r => setTimeout(r, 60000));
-            try {
-              const result = await groqVerifyClaims([claim], groqKey, batch.context || batch.text);
-              verified.push(...result);
-            } catch { /* skip this claim */ }
-          }
-        }
-        // Wait 4 seconds between each verification call
-        await new Promise(r => setTimeout(r, 4000));
-      }
+      // Wait 2 seconds between extract and verify
+      await new Promise(r => setTimeout(r, 2000));
 
-      if (verified.length > 0) {
-        broadcast({
-          type: 'LIVE_CLAIMS',
-          claims: verified,
-          timestamp: batch.timestamp,
-        });
+      // Verify ALL claims in one call (much faster than one-by-one)
+      try {
+        const verified = await groqVerifyClaims(newClaims, groqKey, batch.context || batch.text);
+        if (verified.length > 0) {
+          broadcast({
+            type: 'LIVE_CLAIMS',
+            claims: verified,
+            timestamp: batch.timestamp,
+          });
+        }
+      } catch (e) {
+        if (e.message.includes('Rate limit') || e.message.includes('429')) {
+          // Hit rate limit — wait 30 seconds and retry
+          await new Promise(r => setTimeout(r, 30000));
+          try {
+            const verified = await groqVerifyClaims(newClaims, groqKey, batch.context || batch.text);
+            if (verified.length > 0) {
+              broadcast({ type: 'LIVE_CLAIMS', claims: verified, timestamp: batch.timestamp });
+            }
+          } catch { /* skip this batch */ }
+        }
       }
     } catch (e) {
       console.error('[NoLie] Live batch error:', e);
       if (e.message.includes('Rate limit') || e.message.includes('429')) {
-        // Put batch back in queue and wait
         liveQueue.unshift(batch);
-        await new Promise(r => setTimeout(r, 60000));
+        await new Promise(r => setTimeout(r, 30000));
       }
     }
 
-    // Wait 5 seconds between batches
-    await new Promise(r => setTimeout(r, 5000));
+    // Wait 3 seconds between batches
+    await new Promise(r => setTimeout(r, 3000));
   }
 
   liveProcessing = false;
