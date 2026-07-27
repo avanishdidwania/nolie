@@ -462,10 +462,14 @@ async function getSettings() {
 
 let liveMode = false;
 let liveCheckedClaims = new Set();
+let liveQueue = []; // Queue of batches waiting to be processed
+let liveProcessing = false; // Is the queue currently being processed
 
 async function handleStartLive(tabId) {
   liveMode = true;
   liveCheckedClaims = new Set();
+  liveQueue = [];
+  liveProcessing = false;
   broadcast({ type: 'LIVE_STARTED' });
 
   // Tell content script to start observing
@@ -478,6 +482,7 @@ async function handleStartLive(tabId) {
 
 async function handleStopLive(tabId) {
   liveMode = false;
+  liveQueue = [];
   broadcast({ type: 'LIVE_STOPPED' });
 
   try {
@@ -488,37 +493,93 @@ async function handleStopLive(tabId) {
 async function handleLiveBatch(text, timestamp, context) {
   if (!liveMode || !text) return;
 
-  const groqKey = await getGroqKey();
-  if (!groqKey) return;
+  // Add to queue instead of processing immediately
+  liveQueue.push({ text, timestamp, context });
 
-  try {
-    // Extract claims from the batch (use stricter live prompt)
-    const claims = await groqExtractLiveClaims(text, groqKey);
-
-    if (!claims || claims.length === 0) return;
-
-    // Filter out claims we've already checked
-    const newClaims = claims.filter(c => {
-      const key = c.claim.toLowerCase().trim().slice(0, 50);
-      if (liveCheckedClaims.has(key)) return false;
-      liveCheckedClaims.add(key);
-      return true;
-    });
-
-    if (newClaims.length === 0) return;
-
-    // Verify new claims with full running context (last ~2 min)
-    const verified = await groqVerifyClaims(newClaims, groqKey, context || text);
-
-    // Send each verified claim to the side panel
-    broadcast({
-      type: 'LIVE_CLAIMS',
-      claims: verified,
-      timestamp,
-    });
-  } catch (e) {
-    console.error('[NoLie] Live batch error:', e);
+  // Start processing if not already running
+  if (!liveProcessing) {
+    processLiveQueue();
   }
+}
+
+async function processLiveQueue() {
+  if (liveProcessing || liveQueue.length === 0) return;
+  liveProcessing = true;
+
+  while (liveQueue.length > 0 && liveMode) {
+    const batch = liveQueue.shift();
+
+    const groqKey = await getGroqKey();
+    if (!groqKey) break;
+
+    try {
+      // Extract claims
+      const claims = await groqExtractLiveClaims(batch.text, groqKey);
+
+      // Wait 3 seconds between extract and verify to respect rate limits
+      await new Promise(r => setTimeout(r, 3000));
+
+      if (!claims || claims.length === 0 || !liveMode) {
+        // Wait before processing next batch even if no claims found
+        await new Promise(r => setTimeout(r, 5000));
+        continue;
+      }
+
+      // Filter duplicates
+      const newClaims = claims.filter(c => {
+        const key = c.claim.toLowerCase().trim().slice(0, 50);
+        if (liveCheckedClaims.has(key)) return false;
+        liveCheckedClaims.add(key);
+        return true;
+      });
+
+      if (newClaims.length === 0) {
+        await new Promise(r => setTimeout(r, 5000));
+        continue;
+      }
+
+      // Verify — one at a time with delays
+      const verified = [];
+      for (const claim of newClaims) {
+        if (!liveMode) break;
+        try {
+          const result = await groqVerifyClaims([claim], groqKey, batch.context || batch.text);
+          verified.push(...result);
+        } catch (e) {
+          if (e.message.includes('Rate limit') || e.message.includes('429')) {
+            // Hit rate limit — wait 60 seconds and retry
+            await new Promise(r => setTimeout(r, 60000));
+            try {
+              const result = await groqVerifyClaims([claim], groqKey, batch.context || batch.text);
+              verified.push(...result);
+            } catch { /* skip this claim */ }
+          }
+        }
+        // Wait 4 seconds between each verification call
+        await new Promise(r => setTimeout(r, 4000));
+      }
+
+      if (verified.length > 0) {
+        broadcast({
+          type: 'LIVE_CLAIMS',
+          claims: verified,
+          timestamp: batch.timestamp,
+        });
+      }
+    } catch (e) {
+      console.error('[NoLie] Live batch error:', e);
+      if (e.message.includes('Rate limit') || e.message.includes('429')) {
+        // Put batch back in queue and wait
+        liveQueue.unshift(batch);
+        await new Promise(r => setTimeout(r, 60000));
+      }
+    }
+
+    // Wait 5 seconds between batches
+    await new Promise(r => setTimeout(r, 5000));
+  }
+
+  liveProcessing = false;
 }
 
 // -- Utilities --
