@@ -47,30 +47,47 @@ export function stopLiveFactCheck() {
  * Observe YouTube's caption overlay (the subtitles on the video player).
  */
 function observeCaptions() {
-  // YouTube renders captions in .ytp-caption-segment elements
-  // inside .ytp-caption-window-container
-  const findCaptionContainer = () => {
-    return document.querySelector('.ytp-caption-window-container')
-      || document.querySelector('.caption-window')
-      || document.querySelector('#movie_player .ytp-caption-segment')?.parentElement?.parentElement;
-  };
+  // Try multiple selectors for the caption container
+  const selectors = [
+    '.ytp-caption-window-container',
+    '.caption-window',
+    '.ytp-caption-window-bottom',
+    '#ytp-caption-window-container',
+    '.captions-text',
+    '#movie_player .ytp-caption-segment',
+  ];
 
-  let container = findCaptionContainer();
+  let container = null;
+  for (const sel of selectors) {
+    container = document.querySelector(sel);
+    if (container) break;
+  }
 
-  // If captions aren't visible yet, watch for them to appear
   if (!container) {
-    const playerObserver = new MutationObserver(() => {
-      container = findCaptionContainer();
-      if (container) {
-        playerObserver.disconnect();
-        attachCaptionObserver(container);
-      }
-    });
-    const player = document.querySelector('#movie_player') || document.querySelector('#player');
+    // Watch the whole player for caption elements to appear
+    const player = document.querySelector('#movie_player') || document.querySelector('#player-container');
     if (player) {
-      playerObserver.observe(player, { childList: true, subtree: true });
+      console.log('[NoLie Live] No caption container found yet, watching player for changes...');
+      const watchForCaptions = new MutationObserver(() => {
+        // Check for any caption-related element
+        const captionEl = player.querySelector('.ytp-caption-segment')
+          || player.querySelector('.caption-window')
+          || player.querySelector('.ytp-caption-window-container')
+          || player.querySelector('[class*="caption"]');
+        if (captionEl) {
+          console.log('[NoLie Live] Found caption element:', captionEl.className);
+          watchForCaptions.disconnect();
+          const captionContainer = captionEl.closest('.ytp-caption-window-container')
+            || captionEl.closest('.caption-window')
+            || captionEl.parentElement?.parentElement
+            || captionEl.parentElement;
+          attachCaptionObserver(captionContainer || captionEl);
+        }
+      });
+      watchForCaptions.observe(player, { childList: true, subtree: true });
     }
   } else {
+    console.log('[NoLie Live] Found caption container:', container.className);
     attachCaptionObserver(container);
   }
 }
@@ -81,20 +98,25 @@ function observeCaptions() {
 function attachCaptionObserver(container) {
   if (observer) observer.disconnect();
 
+  console.log('[NoLie Live] Attaching observer to:', container.tagName, container.className);
+
   observer = new MutationObserver((mutations) => {
     if (!liveActive) return;
 
-    for (const mutation of mutations) {
-      // Look for new caption text
-      if (mutation.type === 'childList' || mutation.type === 'characterData') {
-        const segments = container.querySelectorAll('.ytp-caption-segment');
-        if (segments.length > 0) {
-          const currentText = Array.from(segments).map(s => s.textContent.trim()).join(' ');
-          if (currentText && currentText !== captionBuffer[captionBuffer.length - 1]) {
-            addCaptionText(currentText);
-          }
-        }
+    // Get ALL text from the caption container on any change
+    const segments = container.querySelectorAll('.ytp-caption-segment');
+    if (segments.length > 0) {
+      const currentText = Array.from(segments).map(s => s.textContent.trim()).join(' ');
+      if (currentText && currentText.length > 3 && currentText !== captionBuffer[captionBuffer.length - 1]) {
+        addCaptionText(currentText);
       }
+      return;
+    }
+
+    // Fallback: just get innerText of the container
+    const innerText = container.innerText?.trim();
+    if (innerText && innerText.length > 3 && innerText !== captionBuffer[captionBuffer.length - 1]) {
+      addCaptionText(innerText);
     }
   });
 
