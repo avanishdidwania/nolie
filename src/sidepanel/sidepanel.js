@@ -78,6 +78,15 @@ chrome.runtime.onMessage.addListener((message) => {
     case 'LIVE_CLAIMS':
       appendLiveClaims(message.claims);
       break;
+    case 'LIVE_CONNECTED':
+      updateLiveStatus('Connected — listening...');
+      break;
+    case 'LIVE_TRANSCRIPT':
+      updateLiveTranscript(message.text);
+      break;
+    case 'LIVE_INTERIM':
+      updateLiveInterim(message.text);
+      break;
   }
 });
 
@@ -358,8 +367,8 @@ let liveClaimsData = []; // Store all claims for export/history
 
 document.getElementById('startLiveBtn').addEventListener('click', async () => {
   const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-  if (!tab || !tab.url?.includes('youtube.com/watch')) {
-    alert('Live fact-check only works on YouTube video pages. Make sure captions (CC) are enabled.');
+  if (!tab) {
+    alert('No active tab found.');
     return;
   }
   chrome.runtime.sendMessage({ type: 'START_LIVE', tabId: tab.id });
@@ -403,8 +412,31 @@ function showLiveActive() {
   document.getElementById('liveActive').classList.remove('hidden');
   document.getElementById('liveStopped').classList.add('hidden');
   document.getElementById('liveClaims').innerHTML = '';
+  document.getElementById('liveTranscript').innerHTML = '';
+  document.getElementById('liveStatus').textContent = 'Starting...';
   liveClaimIndex = 0;
   liveClaimsData = [];
+}
+
+function updateLiveStatus(text) {
+  const el = document.getElementById('liveStatus');
+  if (el) el.textContent = text;
+}
+
+function updateLiveTranscript(text) {
+  const el = document.getElementById('liveTranscript');
+  if (!el) return;
+  const span = document.createElement('span');
+  span.textContent = text + ' ';
+  span.className = 'transcript-word';
+  el.appendChild(span);
+  el.scrollTop = el.scrollHeight;
+  updateLiveStatus('Live — listening...');
+}
+
+function updateLiveInterim(text) {
+  // Could show interim text in a lighter color — for now just update status
+  updateLiveStatus('Live — "' + text.slice(0, 40) + '..."');
 }
 
 function showLiveInactive() {

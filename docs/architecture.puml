@@ -1,0 +1,130 @@
+@startuml NoLie Architecture
+
+title NoLie — AI-Powered Content Credibility & Fact Verification
+
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam backgroundColor #191919
+skinparam defaultFontColor #e0e0e0
+skinparam ArrowColor #7a9ec7
+skinparam componentBackgroundColor #222222
+skinparam componentBorderColor #2e2e2e
+skinparam noteBackgroundColor #2a2a2a
+skinparam noteBorderColor #3a3a3a
+skinparam packageBackgroundColor #1a1a1a
+skinparam packageBorderColor #2e2e2e
+
+actor "User" as user
+
+package "Chrome Extension (Manifest V3)" {
+
+  component "Popup" as popup {
+    [Scan This Page]
+    [Open Side Panel]
+  }
+
+  component "Side Panel" as sidepanel {
+    [Results Tab]
+    [Live Tab]
+    [History Tab]
+    [Export]
+  }
+
+  component "Content Script" as content {
+    [DOM Extraction]
+    [Heatmap Overlay]
+    [YouTube Transcript]
+    [Live Caption Polling]
+  }
+
+  component "Service Worker" as sw {
+    [Pipeline Orchestrator]
+    [Message Router]
+    [Context Menu]
+    [Live Queue Processor]
+    [History Manager]
+  }
+
+}
+
+package "AI Providers" {
+  component "Groq API\n(Llama 3.3 70B)" as groq {
+    [Claim Extraction]
+    [Claim Verification]
+    [Live Claim Detection]
+  }
+
+  component "Google Gemini\n(3.6 Flash)" as gemini {
+    [Image Analysis]
+    [Video Thumbnail Analysis]
+  }
+}
+
+database "MBFC Dataset\n(3,920 domains)" as mbfc
+
+database "Chrome Storage" as storage {
+  [API Keys]
+  [Scan History]
+  [Settings]
+}
+
+' User interactions
+user --> popup : clicks icon
+user --> content : right-click\n"Fact Check This"
+user --> sidepanel : views results
+
+' Popup to service worker
+popup --> sw : SCAN_PAGE\nSTART_LIVE
+
+' Service worker orchestration
+sw --> content : EXTRACT_CONTENT
+content --> sw : article text\nimages\nmetadata
+
+sw --> groq : extract claims\n(structured JSON)
+groq --> sw : claims array
+
+sw --> groq : verify claims\n(with full context)
+groq --> sw : verdicts + sources
+
+sw --> gemini : analyze images\n(multimodal)
+gemini --> sw : flagged/ok + analysis
+
+sw --> mbfc : domain lookup
+mbfc --> sw : rating + bias
+
+sw --> sidepanel : SCAN_COMPLETE\n(results)
+sw --> storage : save history
+
+' Live mode flow
+content --> sw : LIVE_BATCH\n(caption text + context)
+sw --> groq : extract + verify\n(queue-based)
+sw --> sidepanel : LIVE_CLAIMS\n(real-time)
+
+' Heatmap
+sidepanel --> content : APPLY_HEATMAP
+content --> user : color-coded\nhighlights on page
+
+' YouTube specific
+content --> content : poll .ytp-caption-segment\nevery 1 second
+content --> content : read transcript panel\nDOM innerText
+
+note right of groq
+  Free tier:
+  30 RPM
+  100K tokens/day
+  14,400 requests/day
+end note
+
+note right of gemini
+  Used only for images
+  (optional, toggle in settings)
+end note
+
+note bottom of mbfc
+  Bundled offline JSON
+  No API call needed
+  Bias: LEFT to RIGHT
+  Factual: HIGH/MIXED/LOW
+end note
+
+@enduml

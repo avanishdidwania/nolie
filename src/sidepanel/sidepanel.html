@@ -66,15 +66,16 @@
       <div id="liveInactive" class="live-inactive">
         <div class="empty-icon">⚡</div>
         <h2>Live Fact-Check</h2>
-        <p>Real-time fact-checking while a YouTube video plays. Enable captions (CC) on the video first.</p>
+        <p>Real-time fact-checking for any audio playing in this tab. Works on YouTube, podcasts, live streams, and more.</p>
         <button id="startLiveBtn" class="btn btn-live">Start Live Fact-Check</button>
       </div>
       <div id="liveActive" class="live-active hidden">
         <div class="live-header">
           <span class="live-dot"></span>
-          <span class="live-label">Live — watching for claims...</span>
+          <span id="liveStatus" class="live-label">Starting...</span>
           <button id="stopLiveBtn" class="btn btn-stop">Stop</button>
         </div>
+        <div id="liveTranscript" class="live-transcript"></div>
         <div id="liveClaims" class="live-claims"></div>
       </div>
       <div id="liveStopped" class="live-stopped hidden">

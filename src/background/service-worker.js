@@ -47,6 +47,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === 'LIVE_BATCH') {
     handleLiveBatch(msg.text, msg.timestamp, msg.context);
   }
+  if (msg.type === 'TRANSCRIPT_FINAL') {
+    handleTranscriptSentence(msg.text);
+  }
+  if (msg.type === 'TRANSCRIPT_INTERIM') {
+    broadcast({ type: 'LIVE_INTERIM', text: msg.text });
+  }
+  if (msg.type === 'LIVE_CONNECTED') {
+    broadcast({ type: 'LIVE_CONNECTED' });
+  }
+  if (msg.type === 'LIVE_ERROR') {
+    broadcast({ type: MSG.SCAN_ERROR, error: msg.message });
+  }
 });
 
 async function handlePageScan(tabId) {
@@ -462,21 +474,35 @@ async function getSettings() {
 
 let liveMode = false;
 let liveCheckedClaims = new Set();
-let liveQueue = []; // Queue of batches waiting to be processed
-let liveProcessing = false; // Is the queue currently being processed
+let liveQueue = [];
+let liveProcessing = false;
+let liveTabId = null;
+let liveSentences = []; // Rolling transcript for context
+const LIVE_WINDOW_SIZE = 5; // Sentences before triggering verification
 
 async function handleStartLive(tabId) {
   liveMode = true;
   liveCheckedClaims = new Set();
   liveQueue = [];
   liveProcessing = false;
+  liveTabId = tabId;
+  liveSentences = [];
   broadcast({ type: 'LIVE_STARTED' });
 
-  // Tell content script to start observing
-  try {
-    await chrome.tabs.sendMessage(tabId, { type: 'START_LIVE' });
-  } catch (e) {
-    broadcast({ type: MSG.SCAN_ERROR, error: 'Could not start live mode. Refresh the YouTube page and try again.' });
+  // Check if this is a YouTube page — use caption polling
+  const tab = await chrome.tabs.get(tabId);
+  const isYouTube = tab.url?.includes('youtube.com/watch');
+
+  if (isYouTube) {
+    // Use caption polling (existing approach)
+    try {
+      await chrome.tabs.sendMessage(tabId, { type: 'START_LIVE' });
+    } catch (e) {
+      broadcast({ type: MSG.SCAN_ERROR, error: 'Could not start live mode. Refresh the page and try again.' });
+    }
+  } else {
+    // Use Deepgram audio capture
+    await startAudioCapture(tabId);
   }
 }
 
@@ -485,8 +511,70 @@ async function handleStopLive(tabId) {
   liveQueue = [];
   broadcast({ type: 'LIVE_STOPPED' });
 
+  // Stop caption polling
   try {
-    await chrome.tabs.sendMessage(tabId, { type: 'STOP_LIVE' });
+    await chrome.tabs.sendMessage(tabId || liveTabId, { type: 'STOP_LIVE' });
+  } catch {}
+
+  // Stop audio capture
+  await stopAudioCapture();
+  liveTabId = null;
+}
+
+// Handle incoming transcribed sentences from Deepgram
+function handleTranscriptSentence(text) {
+  if (!liveMode || !text) return;
+
+  liveSentences.push(text);
+  broadcast({ type: 'LIVE_TRANSCRIPT', text: text });
+
+  // Every LIVE_WINDOW_SIZE sentences, send a batch for verification
+  if (liveSentences.length % LIVE_WINDOW_SIZE === 0) {
+    const batchText = liveSentences.slice(-LIVE_WINDOW_SIZE).join(' ');
+    const contextWindow = liveSentences.slice(-20).join(' ');
+    handleLiveBatch(batchText, Date.now(), contextWindow);
+  }
+}
+
+// -- Audio Capture via Offscreen Document --
+
+async function startAudioCapture(tabId) {
+  try {
+    // Get tab media stream ID
+    const streamId = await chrome.tabCapture.getMediaStreamId({ targetTabId: tabId });
+
+    // Create offscreen document if not exists
+    const existingContexts = await chrome.runtime.getContexts({
+      contextTypes: ['OFFSCREEN_DOCUMENT'],
+    });
+
+    if (existingContexts.length === 0) {
+      await chrome.offscreen.createDocument({
+        url: 'src/offscreen/offscreen.html',
+        reasons: ['USER_MEDIA'],
+        justification: 'Audio capture for real-time transcription',
+      });
+    }
+
+    // Tell offscreen document to start capturing
+    await chrome.runtime.sendMessage({
+      type: 'START_CAPTURE',
+      streamId: streamId,
+      language: 'en',
+    });
+  } catch (e) {
+    broadcast({ type: MSG.SCAN_ERROR, error: 'Audio capture failed: ' + e.message });
+  }
+}
+
+async function stopAudioCapture() {
+  try {
+    await chrome.runtime.sendMessage({ type: 'STOP_CAPTURE' });
+  } catch {}
+
+  // Close offscreen document
+  try {
+    await chrome.offscreen.closeDocument();
   } catch {}
 }
 
