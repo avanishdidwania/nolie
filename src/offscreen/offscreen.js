@@ -149,6 +149,9 @@ function startAudioPipeline() {
   audioContext = new AudioContext({ sampleRate: 16000 });
   const source = audioContext.createMediaStreamSource(mediaStream);
 
+  // Connect source to destination so user can still hear the audio
+  source.connect(audioContext.destination);
+
   processor = audioContext.createScriptProcessor(4096, 1, 1);
   processor.onaudioprocess = (e) => {
     if (!socket || socket.readyState !== WebSocket.OPEN) return;
