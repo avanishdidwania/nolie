@@ -531,11 +531,20 @@ function handleTranscriptSentence(text) {
   liveSentences.push(text);
   broadcast({ type: 'LIVE_TRANSCRIPT', text: text });
 
-  // Every LIVE_WINDOW_SIZE sentences, send a batch for verification
-  if (liveSentences.length % LIVE_WINDOW_SIZE === 0) {
-    const batchText = liveSentences.slice(-LIVE_WINDOW_SIZE).join(' ');
-    const contextWindow = liveSentences.slice(-20).join(' ');
-    handleLiveBatch(batchText, Date.now(), contextWindow);
+  // Trigger verification based on accumulated text length OR sentence count
+  const recentText = liveSentences.slice(-LIVE_WINDOW_SIZE).join(' ');
+  const totalChars = recentText.length;
+
+  // Send batch if we have enough text (200+ chars) OR enough sentences (5+)
+  if (totalChars >= 200 || liveSentences.length % LIVE_WINDOW_SIZE === 0) {
+    if (liveSentences.length > 0 && !liveProcessing) {
+      const batchText = liveSentences.slice(-LIVE_WINDOW_SIZE).join(' ');
+      const contextWindow = liveSentences.join(' ');
+      // Reset sentence counter to prevent immediate re-trigger
+      const sentencesCopy = [...liveSentences];
+      liveSentences = liveSentences.slice(-2); // Keep last 2 for context overlap
+      handleLiveBatch(batchText, Date.now(), contextWindow);
+    }
   }
 }
 
