@@ -1,6 +1,6 @@
 @startuml NoLie Architecture
 
-title NoLie — AI-Powered Content Credibility & Fact Verification
+title NoLie — Layer Architecture
 
 skinparam componentStyle rectangle
 skinparam shadowing false
@@ -14,117 +14,106 @@ skinparam noteBorderColor #3a3a3a
 skinparam packageBackgroundColor #1a1a1a
 skinparam packageBorderColor #2e2e2e
 
-actor "User" as user
-
-package "Chrome Extension (Manifest V3)" {
-
-  component "Popup" as popup {
-    [Scan This Page]
-    [Open Side Panel]
-  }
-
-  component "Side Panel" as sidepanel {
-    [Results Tab]
-    [Live Tab]
-    [History Tab]
-    [Export]
-  }
-
-  component "Content Script" as content {
-    [DOM Extraction]
-    [Heatmap Overlay]
-    [YouTube Transcript]
-    [Live Caption Polling]
-  }
-
-  component "Service Worker" as sw {
-    [Pipeline Orchestrator]
-    [Message Router]
-    [Context Menu]
-    [Live Queue Processor]
-    [History Manager]
-  }
-
+package "PRESENTATION LAYER" {
+  component [Popup\n- Scan button\n- Open panel] as popup
+  component [Side Panel\n- Results tab\n- Live tab\n- History tab\n- Export] as sidepanel
+  component [Options Page\n- API keys\n- Custom prompt\n- Settings] as options
 }
 
-package "AI Providers" {
-  component "Groq API\n(Llama 3.3 70B)" as groq {
-    [Claim Extraction]
-    [Claim Verification]
-    [Live Claim Detection]
-  }
-
-  component "Google Gemini\n(3.6 Flash)" as gemini {
-    [Image Analysis]
-    [Video Thumbnail Analysis]
-  }
+package "ORCHESTRATION LAYER" {
+  component [Service Worker\n- Message router\n- Pipeline orchestrator\n- Tab capture initiator\n- Offscreen lifecycle\n- Live queue processor\n- History manager\n- Context menu] as sw
 }
 
-database "MBFC Dataset\n(3,920 domains)" as mbfc
-
-database "Chrome Storage" as storage {
-  [API Keys]
-  [Scan History]
-  [Settings]
+package "CONTENT LAYER" {
+  component [content.js\n- DOM extraction\n- Heatmap overlay] as content
+  component [youtube.js\n- Transcript extraction] as youtube
+  component [live-factcheck.js\n- Caption polling] as livecaption
 }
 
-' User interactions
-user --> popup : clicks icon
-user --> content : right-click\n"Fact Check This"
-user --> sidepanel : views results
+package "OFFSCREEN LAYER" {
+  component [offscreen.js\n- Tab audio capture\n- WebSocket to Deepgram\n- Audio passthrough] as offscreen
+}
 
-' Popup to service worker
+package "AI LAYER" {
+  component [groq.js\n- Claim extraction\n- Claim verification\n- Live claim detection] as groq
+  component [gemini.js\n- Image analysis\n- Video thumbnail analysis] as gemini
+}
+
+package "DATA LAYER" {
+  database [mbfc.json\n3,920 domains\nBias + Factual ratings] as mbfc
+  database [chrome.storage\n- API keys\n- History\n- Settings] as storage
+}
+
+package "EXTERNAL SERVICES" {
+  cloud [Groq API\nLlama 3.3 70B] as groqapi
+  cloud [Google Gemini\n3.6 Flash] as geminiapi
+  cloud [Deepgram\nNova-2\n(WebSocket)] as deepgramapi
+  cloud [Vercel Backend\nToken issuance] as backend
+}
+
+' Presentation to Orchestration
 popup --> sw : SCAN_PAGE\nSTART_LIVE
+sidepanel --> sw : STOP_LIVE\nGET_HISTORY
+options --> storage : save settings
 
-' Service worker orchestration
+' Orchestration to Content
 sw --> content : EXTRACT_CONTENT
-content --> sw : article text\nimages\nmetadata
+sw --> youtube : executeScript\n(world: MAIN)
+sw --> livecaption : START_LIVE
 
-sw --> groq : extract claims\n(structured JSON)
-groq --> sw : claims array
+' Orchestration to Offscreen
+sw --> offscreen : START_CAPTURE\n(streamId)
 
-sw --> groq : verify claims\n(with full context)
-groq --> sw : verdicts + sources
+' Orchestration to AI
+sw --> groq : extract + verify
+sw --> gemini : analyze images
 
-sw --> gemini : analyze images\n(multimodal)
-gemini --> sw : flagged/ok + analysis
-
+' Orchestration to Data
 sw --> mbfc : domain lookup
-mbfc --> sw : rating + bias
-
-sw --> sidepanel : SCAN_COMPLETE\n(results)
 sw --> storage : save history
 
-' Live mode flow
-content --> sw : LIVE_BATCH\n(caption text + context)
-sw --> groq : extract + verify\n(queue-based)
-sw --> sidepanel : LIVE_CLAIMS\n(real-time)
+' Content back to Orchestration
+content --> sw : page content
+livecaption --> sw : LIVE_BATCH
+youtube --> sw : transcript text
 
-' Heatmap
-sidepanel --> content : APPLY_HEATMAP
-content --> user : color-coded\nhighlights on page
+' Offscreen back to Orchestration
+offscreen --> sw : TRANSCRIPT_FINAL\nTRANSCRIPT_INTERIM
 
-' YouTube specific
-content --> content : poll .ytp-caption-segment\nevery 1 second
-content --> content : read transcript panel\nDOM innerText
+' Orchestration to Presentation
+sw --> sidepanel : SCAN_COMPLETE\nLIVE_CLAIMS\nLIVE_TRANSCRIPT
 
-note right of groq
-  Free tier:
-  30 RPM
-  100K tokens/day
-  14,400 requests/day
+' AI Layer to External
+groq --> groqapi : REST API\n(JSON)
+gemini --> geminiapi : REST API\n(multimodal)
+
+' Offscreen to External
+offscreen --> deepgramapi : WebSocket\n(Int16 PCM audio)
+deepgramapi --> offscreen : WebSocket\n(transcription JSON)
+offscreen --> backend : fetch token
+
+' Content to Web Pages
+component [Web Pages] as pages
+content --> pages
+
+note right of deepgramapi
+  Bidirectional WebSocket
+  Client sends: raw audio
+  Server sends: transcript
+  Persistent connection
 end note
 
-note right of gemini
-  Used only for images
-  (optional, toggle in settings)
+note right of offscreen
+  Hidden document
+  Has Web Audio API
+  Captures tab audio
+  16kHz, Int16 PCM
 end note
 
-note bottom of mbfc
-  Bundled offline JSON
-  No API call needed
-  Bias: LEFT to RIGHT
-  Factual: HIGH/MIXED/LOW
+note bottom of sw
+  Central coordinator
+  All layers communicate
+  through service worker
 end note
 
 @enduml
