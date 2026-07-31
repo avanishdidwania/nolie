@@ -490,7 +490,9 @@ async function handleStartLive(tabId) {
   liveProcessing = false;
   liveTabId = tabId;
   liveSentences = [];
-  broadcast({ type: 'LIVE_STARTED' });
+
+  // Delay broadcast to let side panel load
+  setTimeout(() => broadcast({ type: 'LIVE_STARTED' }), 1000);
 
   // Check if this is a YouTube page — use caption polling
   const tab = await chrome.tabs.get(tabId);
