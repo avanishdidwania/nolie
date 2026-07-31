@@ -7,6 +7,7 @@ NoLie is a Chrome extension that automatically scans news articles and YouTube v
 ## Features
 
 - **Full article scanning** — one-click scan extracts and verifies all factual claims from any news article
+- **Real-time audio fact-checking** — captures tab audio via Deepgram (Nova-2) for any page: podcasts, live streams, Twitter Spaces, Instagram reels. Uses YouTube caption polling for YouTube videos.
 - **YouTube video fact-checking** — automatically extracts video transcript (auto-generated or manual captions) and verifies claims from spoken content
 - **AI-powered claim extraction** — identifies specific, verifiable factual statements, filtering out opinions and predictions
 - **Context-aware verification** — each claim is verified with full article/transcript context for accurate assessment
@@ -43,12 +44,21 @@ Source Credibility (MBFC dataset - offline lookup)
 Score Calculation + Results Display + Heatmap Overlay
 ```
 
+### Live Mode (Non-YouTube)
+
+```
+User clicks "Start Live" → tabCapture gets audio stream → Offscreen document captures audio
+→ Audio streamed to Deepgram (Nova-2) via WebSocket → Real-time transcription
+→ Sentences accumulated → Groq extracts + verifies claims → Side panel displays verdicts
+```
+
 ### Provider Responsibilities
 
 | Provider | Role | Why |
 |----------|------|-----|
 | Groq (Llama 3.3 70B) | Claim extraction + verification | Fast, free tier (14,400 req/day), great at structured JSON output |
 | Google Gemini (3.6 Flash) | Image/video multimodal analysis | Handles images natively, detects AI-generated content |
+| Deepgram (Nova-2) | Real-time audio transcription | Accurate, fast, supports 30+ languages, $200 free credit |
 | MBFC Dataset | Source credibility + bias scoring | Bundled offline (3,920 domains), no API needed |
 
 ## Tech Stack
@@ -59,6 +69,8 @@ Score Calculation + Results Display + Heatmap Overlay
 - Groq API (Llama 3.3 70B) — text analysis
 - Google Gemini API (3.6 Flash) — multimodal image analysis
 - MBFC Dataset — source credibility (bundled JSON, 3,920 domains)
+- Deepgram API (Nova-2) — real-time audio-to-text transcription
+- Vercel Serverless Functions — backend for secure Deepgram token issuance
 - Chrome Side Panel API — results display
 
 ## Setup
@@ -88,6 +100,20 @@ Score Calculation + Results Display + Heatmap Overlay
    - Navigate to any news article → click NoLie → "Scan This Page"
    - Or go to a YouTube video → open transcript panel → scan
 
+## Backend
+
+The extension uses a Vercel serverless backend (`nolie-backend`) to securely issue Deepgram API tokens. This keeps the Deepgram key server-side and never exposed in client code.
+
+- Endpoint: `POST /api/deepgram-token`
+- Returns: Deepgram API key for WebSocket authentication
+- Hosted at: `https://nolie-backend.vercel.app`
+
+To deploy your own backend:
+1. Clone `nolie-backend/`
+2. `vercel login`
+3. `vercel env add DEEPGRAM_API_KEY` (paste your Deepgram key)
+4. `vercel --prod`
+
 ## How It Works
 
 ### News Articles
@@ -106,6 +132,16 @@ Score Calculation + Results Display + Heatmap Overlay
 3. Transcript text extracted from the panel DOM (works with auto-generated captions in any language)
 4. Transcript runs through the same claim extraction → verification pipeline
 5. Results displayed with video metadata
+
+### Live Mode (Audio — Non-YouTube)
+1. User clicks "Start Live Fact-Check" on any page with audio
+2. Service worker gets tab audio stream via `chrome.tabCapture`
+3. Offscreen document captures audio at 16kHz, converts to Int16 PCM
+4. Audio streamed to Deepgram Nova-2 via WebSocket in real-time
+5. Deepgram returns transcribed sentences
+6. Every 5 sentences → Groq extracts check-worthy claims
+7. Claims verified with rolling transcript context
+8. Verdicts appear in side panel as video/audio plays
 
 ### Manual Mode
 1. Select any text on any webpage
@@ -133,6 +169,9 @@ nolie/
 │   │   ├── gemini.js          # Gemini API: image/video multimodal analysis
 │   │   ├── mbfc.js            # MBFC domain lookup with subdomain fallback
 │   │   └── export.js          # HTML report generation
+│   ├── offscreen/
+│   │   ├── offscreen.html   # Hidden document for audio capture
+│   │   └── offscreen.js     # Tab audio capture + Deepgram WebSocket streaming
 │   ├── options/               # Settings page (API keys, preferences, custom prompt)
 │   ├── popup/                 # Extension popup ("Scan This Page" button)
 │   └── sidepanel/             # Results display (score, claims, history, export)
@@ -159,6 +198,7 @@ The overall credibility score (0-100) is calculated using:
 |----------|-----------|----------|
 | Groq | 14,400 req/day, 30 RPM | Claim extraction + verification |
 | Gemini | Limited (varies by model) | Image/video analysis (optional) |
+| Deepgram | $200 free credit (~200 hours of audio) | Real-time audio transcription |
 
 ## Limitations
 
@@ -167,6 +207,8 @@ The overall credibility score (0-100) is calculated using:
 - Groq's Llama 3.3 70B has a knowledge cutoff — very recent events may be marked UNVERIFIABLE
 - Auto-generated YouTube captions may have transcription errors that affect claim accuracy
 - MBFC dataset covers English-language news sources primarily
+- Deepgram real-time mode requires the backend to be deployed (for token issuance)
+- Tab audio capture mutes briefly on start (Chrome limitation), then resumes
 
 ## Development
 
