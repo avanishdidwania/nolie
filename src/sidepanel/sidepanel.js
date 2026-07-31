@@ -70,6 +70,13 @@ chrome.runtime.onMessage.addListener((message) => {
       switchToHistoryTab();
       break;
     case 'LIVE_STARTED':
+      // Switch to Live tab automatically
+      tabs.forEach(t => t.classList.remove('active'));
+      document.querySelector('[data-tab="live"]').classList.add('active');
+      document.getElementById('resultsTab').classList.add('hidden');
+      document.getElementById('resultsTab').classList.remove('active');
+      document.getElementById('liveTab').classList.remove('hidden');
+      document.getElementById('historyTab').classList.add('hidden');
       showLiveActive();
       break;
     case 'LIVE_STOPPED':

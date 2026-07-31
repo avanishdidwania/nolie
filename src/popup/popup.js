@@ -19,7 +19,10 @@ liveBtn.addEventListener('click', async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab) return;
   await chrome.sidePanel.open({ tabId: tab.id });
-  chrome.runtime.sendMessage({ type: 'START_LIVE', tabId: tab.id });
+  // Small delay to let side panel load, then start live
+  setTimeout(() => {
+    chrome.runtime.sendMessage({ type: 'START_LIVE', tabId: tab.id });
+  }, 500);
   window.close();
 });
 
