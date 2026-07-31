@@ -364,6 +364,7 @@ function getVerdictClass(verdict) {
 
 let liveClaimIndex = 0;
 let liveClaimsData = []; // Store all claims for export/history
+let liveTranscriptText = ''; // Full transcript for history
 
 document.getElementById('startLiveBtn').addEventListener('click', async () => {
   const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
@@ -416,6 +417,7 @@ function showLiveActive() {
   document.getElementById('liveStatus').textContent = 'Starting...';
   liveClaimIndex = 0;
   liveClaimsData = [];
+  liveTranscriptText = '';
 }
 
 function updateLiveStatus(text) {
@@ -426,6 +428,7 @@ function updateLiveStatus(text) {
 function updateLiveTranscript(text) {
   const el = document.getElementById('liveTranscript');
   if (!el) return;
+  liveTranscriptText += text + ' ';
   const span = document.createElement('span');
   span.textContent = text + ' ';
   span.className = 'transcript-word';
@@ -452,16 +455,17 @@ function showLiveStopped() {
   document.getElementById('liveClaimCount').textContent = liveClaimsData.length;
   document.getElementById('liveStoppedClaims').innerHTML = document.getElementById('liveClaims').innerHTML;
 
-  // Save to history
-  if (liveClaimsData.length > 0) {
+  // Always save to history (even with 0 claims — transcript is valuable)
+  if (liveTranscriptText.trim().length > 0 || liveClaimsData.length > 0) {
     const results = {
       score: calculateLiveScore(),
       claims: liveClaimsData,
+      transcript: liveTranscriptText.trim(),
       images: [],
       videos: [],
       source: null,
       bias: null,
-      domain: 'youtube.com',
+      domain: 'Live Session',
       url: '',
       title: 'Live Fact-Check Session',
       timestamp: Date.now(),
@@ -471,7 +475,7 @@ function showLiveStopped() {
       const history = data[STORAGE_KEY.HISTORY] || [];
       history.unshift({
         score: results.score,
-        domain: 'youtube.com (live)',
+        domain: 'Live Session',
         url: '',
         title: 'Live Session',
         claimCount: liveClaimsData.length,
