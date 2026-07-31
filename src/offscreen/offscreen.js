@@ -60,6 +60,12 @@ async function startCapture(streamId, language) {
       },
       video: false,
     });
+
+    // IMPORTANT: Play the audio back so user can still hear it
+    // tabCapture redirects audio away from the tab, so we need to play it here
+    const audio = new Audio();
+    audio.srcObject = mediaStream;
+    audio.play();
   } catch (e) {
     chrome.runtime.sendMessage({ type: 'LIVE_ERROR', message: 'Audio capture failed: ' + e.message });
     active = false;

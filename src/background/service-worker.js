@@ -540,13 +540,17 @@ function handleTranscriptSentence(text) {
 
 async function startAudioCapture(tabId) {
   try {
+    console.log('[NoLie] Starting audio capture for tab:', tabId);
+
     // Get tab media stream ID
     const streamId = await chrome.tabCapture.getMediaStreamId({ targetTabId: tabId });
+    console.log('[NoLie] Got stream ID:', streamId?.slice(0, 20) + '...');
 
     // Create offscreen document if not exists
     const existingContexts = await chrome.runtime.getContexts({
       contextTypes: ['OFFSCREEN_DOCUMENT'],
     });
+    console.log('[NoLie] Existing offscreen contexts:', existingContexts.length);
 
     if (existingContexts.length === 0) {
       await chrome.offscreen.createDocument({
@@ -554,14 +558,18 @@ async function startAudioCapture(tabId) {
         reasons: ['USER_MEDIA'],
         justification: 'Audio capture for real-time transcription',
       });
+      console.log('[NoLie] Offscreen document created');
+      // Give it a moment to initialize
+      await new Promise(r => setTimeout(r, 500));
     }
 
     // Tell offscreen document to start capturing
-    await chrome.runtime.sendMessage({
+    const response = await chrome.runtime.sendMessage({
       type: 'START_CAPTURE',
       streamId: streamId,
       language: 'en',
     });
+    console.log('[NoLie] START_CAPTURE response:', response);
   } catch (e) {
     broadcast({ type: MSG.SCAN_ERROR, error: 'Audio capture failed: ' + e.message });
   }
