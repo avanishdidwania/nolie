@@ -18,11 +18,10 @@ const liveBtn = document.getElementById('liveBtn');
 liveBtn.addEventListener('click', async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab) return;
+  // Send START_LIVE first (while popup is still open = activeTab granted)
+  chrome.runtime.sendMessage({ type: 'START_LIVE', tabId: tab.id });
+  // Then open side panel
   await chrome.sidePanel.open({ tabId: tab.id });
-  // Small delay to let side panel load, then start live
-  setTimeout(() => {
-    chrome.runtime.sendMessage({ type: 'START_LIVE', tabId: tab.id });
-  }, 500);
   window.close();
 });
 
