@@ -16,6 +16,7 @@
     "https://generativelanguage.googleapis.com/*",
     "https://api.groq.com/*",
     "https://api.deepgram.com/*",
+    "wss://api.deepgram.com/*",
     "https://nolie-backend.vercel.app/*"
   ],
   "action": {

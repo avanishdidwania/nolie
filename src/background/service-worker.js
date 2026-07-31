@@ -59,6 +59,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === 'LIVE_ERROR') {
     broadcast({ type: MSG.SCAN_ERROR, error: msg.message });
   }
+  if (msg.type === 'LIVE_LOG') {
+    console.log('[NoLie]', msg.message);
+  }
 });
 
 async function handlePageScan(tabId) {
@@ -542,48 +545,38 @@ async function startAudioCapture(tabId) {
   try {
     console.log('[NoLie] Starting audio capture for tab:', tabId);
 
-    // Get tab media stream ID
     const streamId = await chrome.tabCapture.getMediaStreamId({ targetTabId: tabId });
-    console.log('[NoLie] Got stream ID:', streamId?.slice(0, 20) + '...');
+    console.log('[NoLie] Got stream ID');
 
-    // Create offscreen document if not exists
+    // Create offscreen document
     const existingContexts = await chrome.runtime.getContexts({
       contextTypes: ['OFFSCREEN_DOCUMENT'],
     });
-    console.log('[NoLie] Existing offscreen contexts:', existingContexts.length);
-
     if (existingContexts.length === 0) {
       await chrome.offscreen.createDocument({
         url: 'src/offscreen/offscreen.html',
         reasons: ['USER_MEDIA'],
-        justification: 'Audio capture for real-time transcription',
+        justification: 'Audio capture and transcription',
       });
-      console.log('[NoLie] Offscreen document created');
-      // Give it a moment to initialize
-      await new Promise(r => setTimeout(r, 500));
+      await new Promise(r => setTimeout(r, 300));
     }
 
-    // Tell offscreen document to start capturing
+    // Tell offscreen to start — it fetches its own token
     const response = await chrome.runtime.sendMessage({
       type: 'START_CAPTURE',
-      streamId: streamId,
+      streamId,
       language: 'en',
     });
     console.log('[NoLie] START_CAPTURE response:', response);
   } catch (e) {
+    console.error('[NoLie] Audio capture error:', e);
     broadcast({ type: MSG.SCAN_ERROR, error: 'Audio capture failed: ' + e.message });
   }
 }
 
 async function stopAudioCapture() {
-  try {
-    await chrome.runtime.sendMessage({ type: 'STOP_CAPTURE' });
-  } catch {}
-
-  // Close offscreen document
-  try {
-    await chrome.offscreen.closeDocument();
-  } catch {}
+  try { chrome.runtime.sendMessage({ type: 'STOP_CAPTURE' }); } catch {}
+  try { await chrome.offscreen.closeDocument(); } catch {}
 }
 
 async function handleLiveBatch(text, timestamp, context) {
