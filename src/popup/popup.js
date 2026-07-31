@@ -13,6 +13,16 @@ scanBtn.addEventListener('click', async () => {
   window.close();
 });
 
+// Live fact-check — must be triggered from popup for activeTab permission
+const liveBtn = document.getElementById('liveBtn');
+liveBtn.addEventListener('click', async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab) return;
+  await chrome.sidePanel.open({ tabId: tab.id });
+  chrome.runtime.sendMessage({ type: 'START_LIVE', tabId: tab.id });
+  window.close();
+});
+
 openPanelBtn.addEventListener('click', async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab) return;

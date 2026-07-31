@@ -372,6 +372,15 @@ document.getElementById('startLiveBtn').addEventListener('click', async () => {
     alert('No active tab found.');
     return;
   }
+  // Need to invoke activeTab first by executing a script on the tab
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => true,
+    });
+  } catch (e) {
+    // If we can't access the tab, we can't capture audio
+  }
   chrome.runtime.sendMessage({ type: 'START_LIVE', tabId: tab.id });
 });
 
