@@ -332,3 +332,21 @@ body {
 }
 .transcript-word { transition: color 0.3s; }
 .transcript-word:last-child { color: #e8e8e8; }
+
+
+/* Cross-verification badges */
+.cross-badge {
+  font-size: 10px; color: #4daa57; background: rgba(77,170,87,0.1);
+  padding: 2px 6px; border-radius: 3px; margin-left: auto;
+}
+.disputed-badge {
+  font-size: 10px; color: #d44c47; background: rgba(212,76,71,0.1);
+  padding: 2px 6px; border-radius: 3px;
+}
+.claim-disputed { border-color: rgba(212,76,71,0.3); }
+.cross-challenge {
+  font-size: 12px; color: #c89023; font-style: italic;
+  margin-bottom: 6px; padding: 6px 8px;
+  background: rgba(200,144,35,0.05); border-radius: 4px;
+  border-left: 2px solid #c89023;
+}

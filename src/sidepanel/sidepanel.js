@@ -214,14 +214,17 @@ function renderClaim(claim, index) {
   }).join('');
 
   return `
-    <div class="claim-card">
+    <div class="claim-card${claim.disputed ? ' claim-disputed' : ''}">
       <div class="claim-header">
         <span class="claim-number">#${index + 1}</span>
         <span class="verdict-badge ${verdictClass}">${escapeHtml(claim.verdict || 'UNKNOWN')}</span>
         <span class="confidence conf-${(claim.confidence || '').toLowerCase()}">${escapeHtml(claim.confidence || '')}</span>
+        ${claim.crossVerified ? '<span class="cross-badge">✓ Cross-verified</span>' : ''}
+        ${claim.disputed ? '<span class="disputed-badge">⚠ Disputed</span>' : ''}
       </div>
       <p class="claim-text">"${escapeHtml(claim.claim || '')}"</p>
       <p class="claim-explanation">${escapeHtml(claim.explanation || '')}</p>
+      ${claim.crossVerification?.challenge ? `<p class="cross-challenge">${escapeHtml(claim.crossVerification.challenge)}</p>` : ''}
       ${sources ? `<div class="claim-sources">${sources}</div>` : ''}
     </div>
   `;

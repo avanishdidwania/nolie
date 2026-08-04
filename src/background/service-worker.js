@@ -1,6 +1,7 @@
 import { MSG, STORAGE_KEY, MODEL } from '../lib/constants.js';
 import { extractClaims as groqExtractClaims, verifyClaims as groqVerifyClaims, extractLiveClaims as groqExtractLiveClaims } from '../lib/groq.js';
 import { analyzeImages as aiAnalyzeImages, analyzeVideos as aiAnalyzeVideos } from '../lib/gemini.js';
+import { crossVerifyClaims } from '../lib/cross-verify.js';
 import { lookupDomain } from '../lib/mbfc.js';
 
 // Context menu for manual fact-checking
@@ -340,7 +341,17 @@ async function runPipeline(content) {
 
     // Step 2: Verify claims
     broadcast({ type: MSG.SCAN_PROGRESS, text: 'Verifying claims...', progress: 50 });
-    const verifiedClaims = await verifyClaims(claims, apiKey, content.text);
+    let verifiedClaims = await verifyClaims(claims, apiKey, content.text);
+
+    // Step 2b: Cross-verification (if enabled)
+    const settings = await getSettings();
+    if (settings.crossVerify) {
+      broadcast({ type: MSG.SCAN_PROGRESS, text: 'Cross-verifying claims...', progress: 60 });
+      const groqKey = await getGroqKey();
+      if (groqKey) {
+        verifiedClaims = await crossVerifyClaims(verifiedClaims, groqKey, content.text);
+      }
+    }
 
     // Step 3: Analyze images (Gemini - optional, skip on failure)
     let imageResults = [];

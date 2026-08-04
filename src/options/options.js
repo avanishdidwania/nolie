@@ -9,6 +9,7 @@ const toggleKeyBtn = document.getElementById('toggleKeyBtn');
 const saveKeyBtn = document.getElementById('saveKeyBtn');
 const keyStatus = document.getElementById('keyStatus');
 const analyzeImages = document.getElementById('analyzeImages');
+const crossVerify = document.getElementById('crossVerify');
 const saveHistory = document.getElementById('saveHistory');
 const maxClaims = document.getElementById('maxClaims');
 const promptTextarea = document.getElementById('promptTextarea');
@@ -20,6 +21,7 @@ async function loadSettings() {
   if (data[STORAGE_KEY.GROQ_KEY]) groqKeyInput.value = data[STORAGE_KEY.GROQ_KEY];
   const s = data[STORAGE_KEY.SETTINGS] || {};
   analyzeImages.checked = s.analyzeImages !== false;
+  crossVerify.checked = s.crossVerify === true;
   saveHistory.checked = s.saveHistory !== false;
   maxClaims.value = s.maxClaims || '10';
   promptTextarea.value = s.customPrompt || DEFAULT_VERIFY_PROMPT;
@@ -93,11 +95,13 @@ saveKeyBtn.addEventListener('click', async () => {
 function savePreferences() {
   chrome.storage.local.set({ [STORAGE_KEY.SETTINGS]: {
     analyzeImages: analyzeImages.checked,
+    crossVerify: crossVerify.checked,
     saveHistory: saveHistory.checked, maxClaims: maxClaims.value,
     customPrompt: promptTextarea.value,
   }});
 }
 analyzeImages.addEventListener('change', savePreferences);
+crossVerify.addEventListener('change', savePreferences);
 saveHistory.addEventListener('change', savePreferences);
 maxClaims.addEventListener('change', savePreferences);
 
