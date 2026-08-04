@@ -45,12 +45,13 @@ CRITICAL RULES:
 - NEVER infer or assume facts that aren't directly written in the text
 - If a claim is partially stated, extract only what's actually written
 - Each claim must be traceable to a specific sentence in the text
+- FIX any spelling errors, grammar issues, or transcription mistakes in the claims (e.g. misspelled names, places, or words from auto-generated captions)
 
 Extract ONLY:
 - Specific, verifiable statements (statistics, dates, events, named actions)
 - Ignore opinions, predictions, subjective statements, rhetorical questions
 
-Return JSON: {"claims": [{"claim": "exact factual claim AS STATED in the text", "importance": "HIGH|MEDIUM|LOW"}]}
+Return JSON: {"claims": [{"claim": "exact factual claim with spelling corrected", "importance": "HIGH|MEDIUM|LOW"}]}
 
 Text to analyze:
 ---
@@ -103,7 +104,7 @@ DO NOT extract:
 
 If nothing is check-worthy, return: {"claims": []}
 
-Return JSON: {"claims": [{"claim": "exact factual claim", "importance": "HIGH|MEDIUM|LOW"}]}
+Return JSON: {"claims": [{"claim": "exact factual claim with spelling corrected", "importance": "HIGH|MEDIUM|LOW"}]}
 
 Speech segment:
 ---

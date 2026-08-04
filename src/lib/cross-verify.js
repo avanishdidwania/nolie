@@ -23,6 +23,8 @@ DO NOT downgrade confidence just because:
 - The claim is a well-known historical fact without a citation
 - The explanation doesn't cite primary sources for universally accepted facts
 - The claim is simple/obvious
+- There are minor spelling errors or typos (e.g. "Vermacht" vs "Wehrmacht")
+- Names are slightly misspelled due to transcription errors
 
 Only challenge if you find a REAL factual error or genuinely misleading framing.
 
