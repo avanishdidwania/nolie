@@ -14,13 +14,20 @@ scanBtn.addEventListener('click', async () => {
 });
 
 // Live fact-check — must be triggered from popup for activeTab permission
-const liveBtn = document.getElementById('liveBtn');
-liveBtn.addEventListener('click', async () => {
+const liveCaptionsBtn = document.getElementById('liveCaptionsBtn');
+liveCaptionsBtn.addEventListener('click', async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab) return;
-  // Send START_LIVE first (while popup is still open = activeTab granted)
-  chrome.runtime.sendMessage({ type: 'START_LIVE', tabId: tab.id });
-  // Then open side panel
+  chrome.runtime.sendMessage({ type: 'START_LIVE', tabId: tab.id, mode: 'captions' });
+  await chrome.sidePanel.open({ tabId: tab.id });
+  window.close();
+});
+
+const liveAudioBtn = document.getElementById('liveAudioBtn');
+liveAudioBtn.addEventListener('click', async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab) return;
+  chrome.runtime.sendMessage({ type: 'START_LIVE', tabId: tab.id, mode: 'audio' });
   await chrome.sidePanel.open({ tabId: tab.id });
   window.close();
 });

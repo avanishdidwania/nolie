@@ -219,7 +219,7 @@ function renderClaim(claim, index) {
         <span class="claim-number">#${index + 1}</span>
         <span class="verdict-badge ${verdictClass}">${escapeHtml(claim.verdict || 'UNKNOWN')}</span>
         <span class="confidence conf-${(claim.confidence || '').toLowerCase()}">${escapeHtml(claim.confidence || '')}</span>
-        ${claim.crossVerified ? '<span class="cross-badge">✓ Cross-verified</span>' : ''}
+        ${claim.crossVerified && !claim.disputed ? '<span class="cross-badge">✓ Cross-verified</span>' : ''}
         ${claim.disputed ? '<span class="disputed-badge">⚠ Disputed</span>' : ''}
       </div>
       <p class="claim-text">"${escapeHtml(claim.claim || '')}"</p>

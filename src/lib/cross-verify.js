@@ -6,7 +6,7 @@
 
 import { GROQ_MODEL, GROQ_BASE_URL } from './constants.js';
 
-const ADVERSARIAL_SYSTEM = `You are a skeptical fact-checker. Your job is to challenge and stress-test a verification result. Look for weaknesses, unsupported assumptions, potential hallucinations, and reasons the verdict might be WRONG. Be rigorous and critical. Return ONLY a JSON object.`;
+const ADVERSARIAL_SYSTEM = `You are a skeptical fact-checker performing a quality check on a verification result. Your job is to catch genuine errors — NOT to nitpick well-established facts. Be skeptical but fair. Return ONLY a JSON object.`;
 
 const ADVERSARIAL_USER = `A fact-checking AI verified this claim and produced the following result:
 
@@ -14,11 +14,17 @@ Claim: "{claim}"
 Initial Verdict: {verdict}
 Initial Explanation: "{explanation}"
 
-Your job: Try to DISPROVE or find weaknesses in this verdict. Consider:
-1. Is the explanation actually supported by known facts, or could the AI be confabulating?
-2. Are there important caveats, missing context, or nuances that change the picture?
-3. Are the cited sources real and relevant?
-4. Could the claim be technically true but misleading (or vice versa)?
+Your job: Check if the initial verdict is CORRECT. Only challenge it if you find a genuine problem:
+1. Is the claim actually factually wrong or misleading? (Not just "lacks citation" — if it's a well-known fact, that's fine)
+2. Does the explanation contain fabricated details or hallucinated sources?
+3. Is there important missing context that changes the meaning?
+
+DO NOT downgrade confidence just because:
+- The claim is a well-known historical fact without a citation
+- The explanation doesn't cite primary sources for universally accepted facts
+- The claim is simple/obvious
+
+Only challenge if you find a REAL factual error or genuinely misleading framing.
 
 Article context for reference:
 ---
@@ -27,11 +33,11 @@ Article context for reference:
 
 Return JSON:
 {
-  "challenge": "Your strongest counter-argument or weakness found (1-2 sentences)",
+  "challenge": "Your counter-argument (empty string if you agree with the verdict)",
   "agrees_with_verdict": true/false,
   "confidence_adjustment": "UP" or "DOWN" or "SAME",
   "revised_verdict": "TRUE" or "FALSE" or "MISLEADING" or "UNVERIFIABLE" (only if you disagree),
-  "reason": "Why you agree or disagree with the original verdict"
+  "reason": "Brief explanation"
 }`;
 
 /**

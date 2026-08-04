@@ -37,16 +37,22 @@ async function callGroq(apiKey, systemPrompt, userMessage) {
 
 const EXTRACT_SYSTEM = `You are a fact-checking assistant. Extract verifiable factual claims from article text. Return ONLY a JSON object with a "claims" array.`;
 
-const EXTRACT_USER = `Analyze this article and extract up to {maxClaims} specific, verifiable factual claims. 
+const EXTRACT_USER = `Analyze this article and extract up to {maxClaims} specific, verifiable factual claims.
 
-Rules:
-- Extract ONLY specific, verifiable statements (statistics, dates, events, named actions)
+CRITICAL RULES:
+- ONLY extract claims that are EXPLICITLY STATED in the text below
+- NEVER generate claims from your own knowledge about the topic
+- NEVER infer or assume facts that aren't directly written in the text
+- If a claim is partially stated, extract only what's actually written
+- Each claim must be traceable to a specific sentence in the text
+
+Extract ONLY:
+- Specific, verifiable statements (statistics, dates, events, named actions)
 - Ignore opinions, predictions, subjective statements, rhetorical questions
-- Each claim must be self-contained
 
-Return JSON: {"claims": [{"claim": "exact factual claim", "importance": "HIGH|MEDIUM|LOW"}]}
+Return JSON: {"claims": [{"claim": "exact factual claim AS STATED in the text", "importance": "HIGH|MEDIUM|LOW"}]}
 
-Article:
+Text to analyze:
 ---
 {text}
 ---`;

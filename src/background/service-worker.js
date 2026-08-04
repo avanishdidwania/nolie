@@ -40,7 +40,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     handleSelectionScan(msg.text, { id: msg.tabId });
   }
   if (msg.type === 'START_LIVE') {
-    handleStartLive(msg.tabId);
+    handleStartLive(msg.tabId, msg.mode || 'captions');
   }
   if (msg.type === 'STOP_LIVE') {
     handleStopLive(msg.tabId);
@@ -493,7 +493,7 @@ let liveTabId = null;
 let liveSentences = []; // Rolling transcript for context
 const LIVE_WINDOW_SIZE = 5; // Sentences before triggering verification
 
-async function handleStartLive(tabId) {
+async function handleStartLive(tabId, mode) {
   liveMode = true;
   liveCheckedClaims = new Set();
   liveQueue = [];
@@ -504,19 +504,16 @@ async function handleStartLive(tabId) {
   // Delay broadcast to let side panel load
   setTimeout(() => broadcast({ type: 'LIVE_STARTED' }), 1000);
 
-  // Check if this is a YouTube page — use caption polling
-  const tab = await chrome.tabs.get(tabId);
-  const isYouTube = tab.url?.includes('youtube.com/watch');
-
-  if (isYouTube) {
-    // Use caption polling (existing approach)
+  if (mode === 'captions') {
+    // Caption polling (YouTube or any page with visible captions)
     try {
       await chrome.tabs.sendMessage(tabId, { type: 'START_LIVE' });
+      setTimeout(() => broadcast({ type: 'LIVE_CONNECTED' }), 1500);
     } catch (e) {
-      broadcast({ type: MSG.SCAN_ERROR, error: 'Could not start live mode. Refresh the page and try again.' });
+      broadcast({ type: MSG.SCAN_ERROR, error: 'Could not start caption mode. Refresh the page and make sure captions (CC) are ON.' });
     }
   } else {
-    // Use Deepgram audio capture
+    // Audio capture via Deepgram
     await startAudioCapture(tabId);
   }
 }
@@ -651,6 +648,7 @@ async function processLiveQueue() {
       // Verify ALL claims in one call (much faster than one-by-one)
       try {
         const verified = await groqVerifyClaims(newClaims, groqKey, batch.context || batch.text);
+
         if (verified.length > 0) {
           broadcast({
             type: 'LIVE_CLAIMS',
