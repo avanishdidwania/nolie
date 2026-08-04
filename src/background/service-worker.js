@@ -2,6 +2,7 @@ import { MSG, STORAGE_KEY, MODEL } from '../lib/constants.js';
 import { extractClaims as groqExtractClaims, verifyClaims as groqVerifyClaims, extractLiveClaims as groqExtractLiveClaims } from '../lib/groq.js';
 import { analyzeImages as aiAnalyzeImages, analyzeVideos as aiAnalyzeVideos } from '../lib/gemini.js';
 import { crossVerifyClaims } from '../lib/cross-verify.js';
+import { deduplicateClaims, detectDependencies } from '../lib/dedup.js';
 import { lookupDomain } from '../lib/mbfc.js';
 
 // Context menu for manual fact-checking
@@ -337,13 +338,19 @@ async function runPipeline(content) {
   try {
     // Step 1: Extract claims
     broadcast({ type: MSG.SCAN_PROGRESS, text: 'Extracting claims...', progress: 25 });
-    const claims = await extractClaims(content.text, apiKey);
+    let claims = await extractClaims(content.text, apiKey);
+
+    // Step 1b: Deduplicate claims
+    claims = deduplicateClaims(claims);
 
     // Step 2: Verify claims
     broadcast({ type: MSG.SCAN_PROGRESS, text: 'Verifying claims...', progress: 50 });
     let verifiedClaims = await verifyClaims(claims, apiKey, content.text);
 
-    // Step 2b: Cross-verification (if enabled)
+    // Step 2b: Detect dependencies between claims
+    verifiedClaims = detectDependencies(verifiedClaims);
+
+    // Step 2c: Cross-verification (if enabled)
     const settings = await getSettings();
     if (settings.crossVerify) {
       broadcast({ type: MSG.SCAN_PROGRESS, text: 'Cross-verifying claims...', progress: 60 });

@@ -225,6 +225,7 @@ function renderClaim(claim, index) {
       <p class="claim-text">"${escapeHtml(claim.claim || '')}"</p>
       <p class="claim-explanation">${escapeHtml(claim.explanation || '')}</p>
       ${claim.crossVerification?.challenge ? `<p class="cross-challenge">${escapeHtml(claim.crossVerification.challenge)}</p>` : ''}
+      ${claim.dependencyNote ? `<p class="dependency-note">${escapeHtml(claim.dependencyNote)}</p>` : ''}
       ${sources ? `<div class="claim-sources">${sources}</div>` : ''}
     </div>
   `;

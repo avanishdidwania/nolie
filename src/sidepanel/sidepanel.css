@@ -350,3 +350,12 @@ body {
   background: rgba(200,144,35,0.05); border-radius: 4px;
   border-left: 2px solid #c89023;
 }
+
+
+/* Dependency warning */
+.dependency-note {
+  font-size: 11px; color: #d44c47; font-style: italic;
+  margin-bottom: 6px; padding: 5px 8px;
+  background: rgba(212,76,71,0.05); border-radius: 4px;
+  border-left: 2px solid #d44c47;
+}
