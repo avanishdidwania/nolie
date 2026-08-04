@@ -1,0 +1,1077 @@
+{
+  "timestamp": "2026-08-04T07:28:46.292Z",
+  "testSetSize": 50,
+  "results": {
+    "bare": {
+      "total": 50,
+      "correct": 42,
+      "accuracy": 84,
+      "errors": [
+        {
+          "claim": "The Amazon River is the longest river in the world",
+          "expected": "MISLEADING",
+          "predicted": "FALSE",
+          "correct": false
+        },
+        {
+          "claim": "The Sahara is the largest desert in the world",
+          "expected": "MISLEADING",
+          "predicted": "FALSE",
+          "correct": false
+        },
+        {
+          "claim": "Goldfish have a 3-second memory",
+          "expected": "FALSE",
+          "predicted": "MISLEADING",
+          "correct": false
+        },
+        {
+          "claim": "Napoleon Bonaparte was extremely short",
+          "expected": "FALSE",
+          "predicted": "MISLEADING",
+          "correct": false
+        },
+        {
+          "claim": "Bananas grow on trees",
+          "expected": "MISLEADING",
+          "predicted": "FALSE",
+          "correct": false
+        },
+        {
+          "claim": "Pi equals exactly 3.14",
+          "expected": "MISLEADING",
+          "predicted": "FALSE",
+          "correct": false
+        },
+        {
+          "claim": "China has the largest population in the world",
+          "expected": "FALSE",
+          "predicted": "TRUE",
+          "correct": false
+        },
+        {
+          "claim": "Oxygen is the most abundant gas in Earth's atmosphere",
+          "expected": "FALSE",
+          "predicted": "TRUE",
+          "correct": false
+        }
+      ],
+      "details": [
+        {
+          "claim": "The Earth orbits the Sun",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Water boils at 100 degrees Celsius at sea level",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Humans have 206 bones in the adult body",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Light travels at approximately 300,000 kilometers per second",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "DNA stands for deoxyribonucleic acid",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The human heart has four chambers",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Mount Everest is the tallest mountain on Earth above sea level",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "India gained independence from Britain on August 15, 1947",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The Berlin Wall fell in November 1989",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "World War II ended in 1945",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The United Nations was founded in 1945",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Neil Armstrong was the first person to walk on the Moon in 1969",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The speed of sound is approximately 343 meters per second in air",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Tokyo is the capital of Japan",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The Amazon River is the longest river in the world",
+          "expected": "MISLEADING",
+          "predicted": "FALSE",
+          "correct": false
+        },
+        {
+          "claim": "The Great Wall of China is visible from space with the naked eye",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "Humans only use 10% of their brain",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "Lightning never strikes the same place twice",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "The Sahara is the largest desert in the world",
+          "expected": "MISLEADING",
+          "predicted": "FALSE",
+          "correct": false
+        },
+        {
+          "claim": "Goldfish have a 3-second memory",
+          "expected": "FALSE",
+          "predicted": "MISLEADING",
+          "correct": false
+        },
+        {
+          "claim": "Albert Einstein failed mathematics in school",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "Napoleon Bonaparte was extremely short",
+          "expected": "FALSE",
+          "predicted": "MISLEADING",
+          "correct": false
+        },
+        {
+          "claim": "Vitamin C cures the common cold",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "The Earth is approximately 4.5 billion years old",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Sharks are mammals",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "The Sun is a star",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Bananas grow on trees",
+          "expected": "MISLEADING",
+          "predicted": "FALSE",
+          "correct": false
+        },
+        {
+          "claim": "The Titanic sank in 1912 after hitting an iceberg",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "There are 7 continents on Earth",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The human body is about 60% water",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Pi equals exactly 3.14",
+          "expected": "MISLEADING",
+          "predicted": "FALSE",
+          "correct": false
+        },
+        {
+          "claim": "Bats are blind",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "The Eiffel Tower was built in 1889",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "China has the largest population in the world",
+          "expected": "FALSE",
+          "predicted": "TRUE",
+          "correct": false
+        },
+        {
+          "claim": "Diamonds are made of compressed coal",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "The Pacific Ocean is the largest ocean on Earth",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Antibiotics are effective against viruses",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "The speed of light is the fastest speed possible in the universe",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The Mona Lisa was painted by Leonardo da Vinci",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Humans and dinosaurs coexisted",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "Photosynthesis converts carbon dioxide and water into glucose and oxygen",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The currency of Japan is the Yuan",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "Mars is known as the Red Planet",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Elephants are the largest land animals",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The United States has 52 states",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "Oxygen is the most abundant gas in Earth's atmosphere",
+          "expected": "FALSE",
+          "predicted": "TRUE",
+          "correct": false
+        },
+        {
+          "claim": "The human brain weighs about 1.4 kilograms",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The Industrial Revolution began in France",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "Gravity was discovered by Isaac Newton",
+          "expected": "MISLEADING",
+          "predicted": "MISLEADING",
+          "correct": true
+        },
+        {
+          "claim": "The Indian Ocean is the warmest ocean in the world",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        }
+      ]
+    },
+    "structured": {
+      "total": 50,
+      "correct": 41,
+      "accuracy": 82,
+      "errors": [
+        {
+          "claim": "The Sahara is the largest desert in the world",
+          "expected": "MISLEADING",
+          "predicted": "FALSE",
+          "correct": false
+        },
+        {
+          "claim": "Goldfish have a 3-second memory",
+          "expected": "FALSE",
+          "predicted": "MISLEADING",
+          "correct": false
+        },
+        {
+          "claim": "Albert Einstein failed mathematics in school",
+          "expected": "FALSE",
+          "predicted": "MISLEADING",
+          "correct": false
+        },
+        {
+          "claim": "Napoleon Bonaparte was extremely short",
+          "expected": "FALSE",
+          "predicted": "MISLEADING",
+          "correct": false
+        },
+        {
+          "claim": "Vitamin C cures the common cold",
+          "expected": "FALSE",
+          "predicted": "MISLEADING",
+          "correct": false
+        },
+        {
+          "claim": "There are 7 continents on Earth",
+          "expected": "TRUE",
+          "predicted": "MISLEADING",
+          "correct": false
+        },
+        {
+          "claim": "Pi equals exactly 3.14",
+          "expected": "MISLEADING",
+          "predicted": "FALSE",
+          "correct": false
+        },
+        {
+          "claim": "China has the largest population in the world",
+          "expected": "FALSE",
+          "predicted": "TRUE",
+          "correct": false
+        },
+        {
+          "claim": "Diamonds are made of compressed coal",
+          "expected": "FALSE",
+          "predicted": "MISLEADING",
+          "correct": false
+        }
+      ],
+      "details": [
+        {
+          "claim": "The Earth orbits the Sun",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Water boils at 100 degrees Celsius at sea level",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Humans have 206 bones in the adult body",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Light travels at approximately 300,000 kilometers per second",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "DNA stands for deoxyribonucleic acid",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The human heart has four chambers",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Mount Everest is the tallest mountain on Earth above sea level",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "India gained independence from Britain on August 15, 1947",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The Berlin Wall fell in November 1989",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "World War II ended in 1945",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The United Nations was founded in 1945",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Neil Armstrong was the first person to walk on the Moon in 1969",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The speed of sound is approximately 343 meters per second in air",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Tokyo is the capital of Japan",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The Amazon River is the longest river in the world",
+          "expected": "MISLEADING",
+          "predicted": "MISLEADING",
+          "correct": true
+        },
+        {
+          "claim": "The Great Wall of China is visible from space with the naked eye",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "Humans only use 10% of their brain",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "Lightning never strikes the same place twice",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "The Sahara is the largest desert in the world",
+          "expected": "MISLEADING",
+          "predicted": "FALSE",
+          "correct": false
+        },
+        {
+          "claim": "Goldfish have a 3-second memory",
+          "expected": "FALSE",
+          "predicted": "MISLEADING",
+          "correct": false
+        },
+        {
+          "claim": "Albert Einstein failed mathematics in school",
+          "expected": "FALSE",
+          "predicted": "MISLEADING",
+          "correct": false
+        },
+        {
+          "claim": "Napoleon Bonaparte was extremely short",
+          "expected": "FALSE",
+          "predicted": "MISLEADING",
+          "correct": false
+        },
+        {
+          "claim": "Vitamin C cures the common cold",
+          "expected": "FALSE",
+          "predicted": "MISLEADING",
+          "correct": false
+        },
+        {
+          "claim": "The Earth is approximately 4.5 billion years old",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Sharks are mammals",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "The Sun is a star",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Bananas grow on trees",
+          "expected": "MISLEADING",
+          "predicted": "MISLEADING",
+          "correct": true
+        },
+        {
+          "claim": "The Titanic sank in 1912 after hitting an iceberg",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "There are 7 continents on Earth",
+          "expected": "TRUE",
+          "predicted": "MISLEADING",
+          "correct": false
+        },
+        {
+          "claim": "The human body is about 60% water",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Pi equals exactly 3.14",
+          "expected": "MISLEADING",
+          "predicted": "FALSE",
+          "correct": false
+        },
+        {
+          "claim": "Bats are blind",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "The Eiffel Tower was built in 1889",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "China has the largest population in the world",
+          "expected": "FALSE",
+          "predicted": "TRUE",
+          "correct": false
+        },
+        {
+          "claim": "Diamonds are made of compressed coal",
+          "expected": "FALSE",
+          "predicted": "MISLEADING",
+          "correct": false
+        },
+        {
+          "claim": "The Pacific Ocean is the largest ocean on Earth",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Antibiotics are effective against viruses",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "The speed of light is the fastest speed possible in the universe",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The Mona Lisa was painted by Leonardo da Vinci",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Humans and dinosaurs coexisted",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "Photosynthesis converts carbon dioxide and water into glucose and oxygen",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The currency of Japan is the Yuan",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "Mars is known as the Red Planet",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Elephants are the largest land animals",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The United States has 52 states",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "Oxygen is the most abundant gas in Earth's atmosphere",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "The human brain weighs about 1.4 kilograms",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The Industrial Revolution began in France",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "Gravity was discovered by Isaac Newton",
+          "expected": "MISLEADING",
+          "predicted": "MISLEADING",
+          "correct": true
+        },
+        {
+          "claim": "The Indian Ocean is the warmest ocean in the world",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        }
+      ]
+    },
+    "full": {
+      "total": 50,
+      "correct": 45,
+      "accuracy": 90,
+      "errors": [
+        {
+          "claim": "Light travels at approximately 300,000 kilometers per second",
+          "expected": "TRUE",
+          "predicted": "FALSE",
+          "correct": false
+        },
+        {
+          "claim": "Goldfish have a 3-second memory",
+          "expected": "FALSE",
+          "predicted": "MISLEADING",
+          "correct": false
+        },
+        {
+          "claim": "Pi equals exactly 3.14",
+          "expected": "MISLEADING",
+          "predicted": "FALSE",
+          "correct": false
+        },
+        {
+          "claim": "Oxygen is the most abundant gas in Earth's atmosphere",
+          "expected": "FALSE",
+          "predicted": "TRUE",
+          "correct": false
+        },
+        {
+          "claim": "Gravity was discovered by Isaac Newton",
+          "expected": "MISLEADING",
+          "predicted": "FALSE",
+          "correct": false
+        }
+      ],
+      "details": [
+        {
+          "claim": "The Earth orbits the Sun",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Water boils at 100 degrees Celsius at sea level",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Humans have 206 bones in the adult body",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Light travels at approximately 300,000 kilometers per second",
+          "expected": "TRUE",
+          "predicted": "FALSE",
+          "correct": false
+        },
+        {
+          "claim": "DNA stands for deoxyribonucleic acid",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The human heart has four chambers",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Mount Everest is the tallest mountain on Earth above sea level",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "India gained independence from Britain on August 15, 1947",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The Berlin Wall fell in November 1989",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "World War II ended in 1945",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The United Nations was founded in 1945",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Neil Armstrong was the first person to walk on the Moon in 1969",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The speed of sound is approximately 343 meters per second in air",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Tokyo is the capital of Japan",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The Amazon River is the longest river in the world",
+          "expected": "MISLEADING",
+          "predicted": "MISLEADING",
+          "correct": true
+        },
+        {
+          "claim": "The Great Wall of China is visible from space with the naked eye",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "Humans only use 10% of their brain",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "Lightning never strikes the same place twice",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "The Sahara is the largest desert in the world",
+          "expected": "MISLEADING",
+          "predicted": "MISLEADING",
+          "correct": true
+        },
+        {
+          "claim": "Goldfish have a 3-second memory",
+          "expected": "FALSE",
+          "predicted": "MISLEADING",
+          "correct": false
+        },
+        {
+          "claim": "Albert Einstein failed mathematics in school",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "Napoleon Bonaparte was extremely short",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "Vitamin C cures the common cold",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "The Earth is approximately 4.5 billion years old",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Sharks are mammals",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "The Sun is a star",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Bananas grow on trees",
+          "expected": "MISLEADING",
+          "predicted": "MISLEADING",
+          "correct": true
+        },
+        {
+          "claim": "The Titanic sank in 1912 after hitting an iceberg",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "There are 7 continents on Earth",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The human body is about 60% water",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Pi equals exactly 3.14",
+          "expected": "MISLEADING",
+          "predicted": "FALSE",
+          "correct": false
+        },
+        {
+          "claim": "Bats are blind",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "The Eiffel Tower was built in 1889",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "China has the largest population in the world",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "Diamonds are made of compressed coal",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "The Pacific Ocean is the largest ocean on Earth",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Antibiotics are effective against viruses",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "The speed of light is the fastest speed possible in the universe",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The Mona Lisa was painted by Leonardo da Vinci",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Humans and dinosaurs coexisted",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "Photosynthesis converts carbon dioxide and water into glucose and oxygen",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The currency of Japan is the Yuan",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "Mars is known as the Red Planet",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "Elephants are the largest land animals",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The United States has 52 states",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "Oxygen is the most abundant gas in Earth's atmosphere",
+          "expected": "FALSE",
+          "predicted": "TRUE",
+          "correct": false
+        },
+        {
+          "claim": "The human brain weighs about 1.4 kilograms",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        },
+        {
+          "claim": "The Industrial Revolution began in France",
+          "expected": "FALSE",
+          "predicted": "FALSE",
+          "correct": true
+        },
+        {
+          "claim": "Gravity was discovered by Isaac Newton",
+          "expected": "MISLEADING",
+          "predicted": "FALSE",
+          "correct": false
+        },
+        {
+          "claim": "The Indian Ocean is the warmest ocean in the world",
+          "expected": "TRUE",
+          "predicted": "TRUE",
+          "correct": true
+        }
+      ]
+    }
+  },
+  "improvement": {
+    "structuredOverBare": -2,
+    "fullOverBare": 6,
+    "fullOverStructured": 8
+  },
+  "contextHelped": [
+    "The Amazon River is the longest river in the world",
+    "The Sahara is the largest desert in the world",
+    "Napoleon Bonaparte was extremely short",
+    "Bananas grow on trees",
+    "China has the largest population in the world"
+  ]
+}

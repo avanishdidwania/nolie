@@ -1,4 +1,4 @@
-# NoLie — AI-Powered Content Credibility & Fact Verification
+c# NoLie — AI-Powered Content Credibility & Fact Verification
 
 ## Overview
 
@@ -191,6 +191,20 @@ The overall credibility score (0-100) is calculated using:
 - **Claim importance** — HIGH (1.5x), MEDIUM (1.0x), LOW (0.7x)
 - **Image penalties** — each flagged image reduces score by 10 points
 - **Source credibility adjustment** — HIGH (+5), MIXED (-5), LOW (-15), VERY LOW (-25)
+
+## Evaluation Results
+
+An ablation study was conducted on 50 claims across 3 pipeline configurations:
+
+| Configuration | Accuracy | vs Baseline |
+|---|---|---|
+| A. Bare model (naive prompt) | 84% | — |
+| B. Structured verification prompt | 82% | -2% |
+| C. Full pipeline (structured + article context) | **90%** | **+6%** |
+
+Key finding: Context-aware verification achieves 90% accuracy — a 6 percentage point improvement over the naive baseline. The improvement comes specifically from nuanced/misleading claims where article context provides necessary information (updated statistics, technical precision, historical context).
+
+The evaluation script and full results are in `eval/`.
 
 ## API Limits (Free Tier)
 
