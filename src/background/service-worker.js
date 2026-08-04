@@ -355,7 +355,6 @@ async function runPipeline(content) {
 
     // Step 3: Analyze images (Gemini - optional, skip on failure)
     let imageResults = [];
-    const settings = await getSettings();
     if (content.images.length > 0 && apiKey && settings.analyzeImages !== false) {
       broadcast({ type: MSG.SCAN_PROGRESS, text: 'Analyzing images...', progress: 70 });
       try {
