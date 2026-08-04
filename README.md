@@ -203,6 +203,7 @@ An ablation study was conducted on 50 claims across 3 pipeline configurations:
 | C. Full pipeline (structured + article context) | **90%** | **+6%** |
 
 Key finding: Context-aware verification achieves 90% accuracy — a 6 percentage point improvement over the naive baseline. The improvement comes specifically from nuanced/misleading claims where article context provides necessary information (updated statistics, technical precision, historical context).
+"Note: Config B's dip reflects a real tradeoff — stricter prompting reduced hallucinated claims (claims invented by the model that weren't in the source text) but became slightly more conservative in judgment. Config C's two-step cross-verification recovers this cost and improves further by explicitly checking each claim against the source before scoring.
 
 The evaluation script and full results are in `eval/`.
 
