@@ -347,10 +347,7 @@ async function runPipeline(content) {
     broadcast({ type: MSG.SCAN_PROGRESS, text: 'Verifying claims...', progress: 50 });
     let verifiedClaims = await verifyClaims(claims, apiKey, content.text);
 
-    // Step 2b: Detect dependencies between claims
-    verifiedClaims = detectDependencies(verifiedClaims);
-
-    // Step 2c: Cross-verification (if enabled)
+    // Step 2b: Cross-verification (if enabled)
     const settings = await getSettings();
     if (settings.crossVerify) {
       broadcast({ type: MSG.SCAN_PROGRESS, text: 'Cross-verifying claims...', progress: 60 });
