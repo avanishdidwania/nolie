@@ -8,7 +8,7 @@
  *    (if Claim A is FALSE, claims that assume A is true are also suspect)
  */
 
-const SIMILARITY_THRESHOLD = 0.5; // 50% word overlap = duplicate
+const SIMILARITY_THRESHOLD = 0.7; // 70% word overlap = duplicate
 const STOP_WORDS = new Set([
   'the', 'a', 'an', 'is', 'was', 'were', 'are', 'been', 'be', 'have', 'has',
   'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may',
