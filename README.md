@@ -11,6 +11,7 @@ NoLie is a Chrome extension that automatically scans news articles and YouTube v
 - **YouTube video fact-checking** — automatically extracts video transcript (auto-generated or manual captions) and verifies claims from spoken content
 - **AI-powered claim extraction** — identifies specific, verifiable factual statements, filtering out opinions and predictions
 - **Context-aware verification** — each claim is verified with full article/transcript context for accurate assessment
+- **Self-learning RAG cache** — verified claims are stored in a vector database (Supabase pgvector). Future similar claims are answered instantly from cache without API calls. Only stores cross-verified HIGH confidence results to prevent poisoning.
 - **Image analysis** — detects AI-generated images, manipulation, and misleading visuals using Gemini multimodal AI
 - **Source credibility scoring** — rates 3,920+ news domains using the MBFC (Media Bias/Fact Check) dataset for bias and factual reporting
 - **Credibility heatmap** — automatically highlights claims on the page (green = true, yellow = unverifiable, red = false)
@@ -32,7 +33,10 @@ Content Extraction (article text, images, video transcript)
 Claim Extraction (Groq - Llama 3.3 70B)
         |
         v
-Claim Verification with full context (Groq - Llama 3.3 70B)
+RAG Cache Check (Supabase pgvector) → [HIT: instant answer] / [MISS: continue]
+        |
+        v
+Claim Verification with full context (Groq - Llama 3.3 70B) → Store if cross-verified
         |
         v
 Image Analysis (Google Gemini - multimodal)
@@ -60,6 +64,8 @@ User clicks "Start Live" → tabCapture gets audio stream → Offscreen document
 | Google Gemini (3.6 Flash) | Image/video multimodal analysis | Handles images natively, detects AI-generated content |
 | Deepgram (Nova-2) | Real-time audio transcription | Accurate, fast, supports 30+ languages, $200 free credit |
 | MBFC Dataset | Source credibility + bias scoring | Bundled offline (3,920 domains), no API needed |
+| Supabase (pgvector) | Self-learning verification cache | Vector similarity search, persistent storage, free tier (500MB) |
+| Gemini Embedding (gemini-embedding-001) | Claim embedding for semantic search | 768-dim vectors, free tier (1,500 req/day) |
 
 ## Tech Stack
 
@@ -70,6 +76,8 @@ User clicks "Start Live" → tabCapture gets audio stream → Offscreen document
 - Google Gemini API (3.6 Flash) — multimodal image analysis
 - MBFC Dataset — source credibility (bundled JSON, 3,920 domains)
 - Deepgram API (Nova-2) — real-time audio-to-text transcription
+- Supabase (PostgreSQL + pgvector) — self-learning RAG cache for verified claims
+- Gemini Embedding API — semantic embeddings for claim similarity matching
 - Vercel Serverless Functions — backend for secure Deepgram token issuance
 - Chrome Side Panel API — results display
 
@@ -120,7 +128,7 @@ To deploy your own backend:
 1. User clicks "Scan This Page" from the extension popup
 2. Content script extracts article text, images, embedded videos, and metadata (domain, date, author)
 3. Article text sent to Groq (Llama 3.3 70B) to extract verifiable factual claims
-4. Each claim verified individually with full article context provided
+4. Each claim checked against RAG cache first (instant if similar claim was previously verified). Cache misses verified via Groq with full article context.
 5. Images optionally analyzed by Gemini for AI-generation and manipulation
 6. Article domain checked against MBFC dataset for source reliability and bias
 7. Credibility score calculated (weighted by verdicts, confidence, source rating, flagged images)
@@ -168,6 +176,7 @@ nolie/
 │   │   ├── groq.js            # Groq API: claim extraction + verification
 │   │   ├── gemini.js          # Gemini API: image/video multimodal analysis
 │   │   ├── mbfc.js            # MBFC domain lookup with subdomain fallback
+│   │   ├── rag.js             # Self-learning RAG: embed, search, store verified claims
 │   │   └── export.js          # HTML report generation
 │   ├── offscreen/
 │   │   ├── offscreen.html   # Hidden document for audio capture
@@ -181,6 +190,23 @@ nolie/
 ├── vite.config.js
 └── .gitignore
 ```
+
+## Self-Learning RAG Cache
+
+NoLie maintains a growing knowledge base of verified claims using Retrieval-Augmented Generation (RAG):
+
+1. Every claim is embedded using Gemini's embedding model (768-dimensional vectors)
+2. Before verification, the system searches Supabase pgvector for semantically similar claims (threshold: 0.92)
+3. If a match is found → return cached verdict instantly (zero API cost, zero latency)
+4. If no match → verify with Groq as usual
+5. After cross-verification, HIGH confidence + non-disputed claims are stored for future use
+
+**Safety mechanisms:**
+- Only cross-verified claims are stored (prevents caching wrong answers)
+- Similarity threshold of 0.92 prevents false cache hits
+- Cache is read-only when cross-verification is disabled (prevents poisoning)
+
+**Result:** The system gets faster and cheaper over time as the knowledge base grows.
 
 ## Credibility Scoring
 
@@ -214,6 +240,8 @@ The evaluation script and full results are in `eval/`.
 | Groq | 14,400 req/day, 30 RPM | Claim extraction + verification |
 | Gemini | Limited (varies by model) | Image/video analysis (optional) |
 | Deepgram | $200 free credit (~200 hours of audio) | Real-time audio transcription |
+| Supabase | 500MB, 50K rows free | RAG vector cache |
+| Gemini Embedding | 1,500 req/day | Claim embeddings |
 
 ## Limitations
 

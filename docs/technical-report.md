@@ -469,6 +469,38 @@ The full pipeline's 6% improvement over baseline is driven by claims requiring e
 
 ---
 
+## Self-Learning RAG Cache
+
+### What It Is
+A Retrieval-Augmented Generation cache that stores previously verified claims in a vector database. When a new claim comes in, the system first checks if a semantically similar claim has already been verified — if so, it returns the cached result instantly without calling Groq.
+
+### Architecture
+```
+Claim text → Gemini Embedding (768-dim) → Search Supabase pgvector (cosine similarity > 0.92)
+    → HIT: return cached verdict (instant, free)
+    → MISS: verify with Groq → if HIGH confidence + cross-verified → store in DB
+```
+
+### Key Design Decisions
+
+1. **Supabase pgvector over ChromaDB:** Full Postgres database with vector search — more flexible than a vector-only store. Can store metadata, run SQL queries, and scale if needed.
+
+2. **Gemini embeddings (768-dim):** Used gemini-embedding-001 with outputDimensionality=768. Matches our pgvector column type. 1,500 free embeddings/day is sufficient.
+
+3. **Similarity threshold 0.92:** High enough to prevent false matches (different claims that share words) but low enough to catch rephrased claims ("India has more people" matches "India surpassed China in population").
+
+4. **Store only cross-verified claims:** Prevents circular reasoning — if a wrong verdict gets cached, it would poison future results. By requiring cross-verification before storage, we ensure the cache only contains independently validated facts.
+
+5. **Read-only mode without cross-verification:** When cross-verify is off, the cache is read-only (retrieves past results but never writes). This prevents unverified claims from polluting the knowledge base.
+
+### Results Observed
+- First scan of an article: 0% cache hit (empty DB)
+- Second scan of same article: 100% cache hit (all claims served from cache)
+- Subsequent scans of related articles: 70-80% cache hit (common claims already verified)
+- Each cache hit saves: 1 Groq API call (~900 tokens input + ~80 tokens output)
+
+---
+
 ## 6. Credibility Scoring Formula
 
 ```
