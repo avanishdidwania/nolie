@@ -17,7 +17,8 @@
     "https://api.groq.com/*",
     "https://api.deepgram.com/*",
     "wss://api.deepgram.com/*",
-    "https://nolie-backend.vercel.app/*"
+    "https://nolie-backend.vercel.app/*",
+    "https://vvgforamjjqsthwwbeyw.supabase.co/*"
   ],
   "action": {
     "default_popup": "src/popup/popup.html",

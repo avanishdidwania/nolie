@@ -2,7 +2,8 @@ import { MSG, STORAGE_KEY, MODEL } from '../lib/constants.js';
 import { extractClaims as groqExtractClaims, verifyClaims as groqVerifyClaims, extractLiveClaims as groqExtractLiveClaims } from '../lib/groq.js';
 import { analyzeImages as aiAnalyzeImages, analyzeVideos as aiAnalyzeVideos } from '../lib/gemini.js';
 import { crossVerifyClaims } from '../lib/cross-verify.js';
-import { deduplicateClaims, detectDependencies } from '../lib/dedup.js';
+import { deduplicateClaims } from '../lib/dedup.js';
+import { checkRAGCache, storeVerification } from '../lib/rag.js';
 import { lookupDomain } from '../lib/mbfc.js';
 
 // Context menu for manual fact-checking
@@ -343,9 +344,9 @@ async function runPipeline(content) {
     // Step 1b: Deduplicate claims
     claims = deduplicateClaims(claims);
 
-    // Step 2: Verify claims
+    // Step 2: Verify claims (with RAG cache check)
     broadcast({ type: MSG.SCAN_PROGRESS, text: 'Verifying claims...', progress: 50 });
-    let verifiedClaims = await verifyClaims(claims, apiKey, content.text);
+    let verifiedClaims = await verifyClaimsWithRAG(claims, apiKey, content.text, content.metadata.domain);
 
     // Step 2b: Cross-verification (if enabled)
     const settings = await getSettings();
@@ -354,6 +355,13 @@ async function runPipeline(content) {
       const groqKey = await getGroqKey();
       if (groqKey) {
         verifiedClaims = await crossVerifyClaims(verifiedClaims, groqKey, content.text);
+      }
+
+      // Store in RAG cache: only HIGH confidence + not disputed + cross-verified
+      for (const claim of verifiedClaims) {
+        if (claim.confidence === 'HIGH' && !claim.disputed && !claim.fromCache && claim._embedding) {
+          storeVerification(claim.claim, claim._embedding, claim, content.metadata.domain);
+        }
       }
     }
 
@@ -432,6 +440,56 @@ async function verifyClaims(claims, apiKey, articleText) {
   const groqKey = await getGroqKey();
   if (!groqKey) return claims.map(c => ({ ...c, verdict: 'UNVERIFIABLE', confidence: 'LOW', explanation: 'No Groq key', sources: [] }));
   return groqVerifyClaims(claims, groqKey, articleText);
+}
+
+// RAG-enhanced verification: check cache first, verify fresh if not found, store results
+async function verifyClaimsWithRAG(claims, geminiKey, articleText, domain) {
+  const groqKey = await getGroqKey();
+  if (!groqKey) return claims.map(c => ({ ...c, verdict: 'UNVERIFIABLE', confidence: 'LOW', explanation: 'No Groq key', sources: [] }));
+
+  const results = [];
+  const toVerify = []; // Claims that need fresh verification
+  const embeddings = {}; // Store embeddings for later caching
+
+  // Step 1: Check RAG cache for each claim
+  for (const claim of claims) {
+    const ragResult = await checkRAGCache(claim.claim, geminiKey);
+
+    if (ragResult && ragResult.fromCache) {
+      // Cache hit! Use cached verdict
+      results.push({
+        claim: claim.claim,
+        importance: claim.importance,
+        verdict: ragResult.verdict,
+        confidence: ragResult.confidence,
+        explanation: ragResult.explanation || '',
+        sources: ragResult.sources || [],
+        fromCache: true,
+        similarity: ragResult.similarity,
+      });
+    } else {
+      // Cache miss — need fresh verification
+      toVerify.push(claim);
+      if (ragResult?.embedding) {
+        embeddings[claim.claim] = ragResult.embedding;
+      }
+    }
+  }
+
+  // Step 2: Verify claims (with RAG cache check)
+  if (toVerify.length > 0) {
+    const freshResults = await groqVerifyClaims(toVerify, groqKey, articleText);
+
+    for (const result of freshResults) {
+      results.push(result);
+      // Store embedding for potential caching after cross-verification
+      if (embeddings[result.claim]) {
+        result._embedding = embeddings[result.claim];
+      }
+    }
+  }
+
+  return results;
 }
 
 async function analyzeImages(images, apiKey) {
