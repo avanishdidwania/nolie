@@ -15,13 +15,13 @@ skinparam packageBackgroundColor #1a1a1a
 skinparam packageBorderColor #2e2e2e
 
 package "PRESENTATION LAYER" {
-  component [Popup\n- Scan button\n- Open panel] as popup
+  component [Popup\n- Scan button\n- Live (Captions)\n- Live (Audio)] as popup
   component [Side Panel\n- Results tab\n- Live tab\n- History tab\n- Export] as sidepanel
-  component [Options Page\n- API keys\n- Custom prompt\n- Settings] as options
+  component [Options Page\n- API keys\n- Custom prompt\n- Cross-verify toggle] as options
 }
 
 package "ORCHESTRATION LAYER" {
-  component [Service Worker\n- Message router\n- Pipeline orchestrator\n- Tab capture initiator\n- Offscreen lifecycle\n- Live queue processor\n- History manager\n- Context menu] as sw
+  component [Service Worker\n- Message router\n- Pipeline orchestrator\n- Tab capture initiator\n- Offscreen lifecycle\n- Live queue processor\n- RAG cache coordinator\n- History manager] as sw
 }
 
 package "CONTENT LAYER" {
@@ -35,8 +35,9 @@ package "OFFSCREEN LAYER" {
 }
 
 package "AI LAYER" {
-  component [groq.js\n- Claim extraction\n- Claim verification\n- Live claim detection] as groq
+  component [groq.js\n- Claim extraction\n- Claim verification\n- Cross-verification\n- Live claim detection] as groq
   component [gemini.js\n- Image analysis\n- Video thumbnail analysis] as gemini
+  component [rag.js\n- Embed claims\n- Search cache\n- Store verified claims] as rag
 }
 
 package "DATA LAYER" {
@@ -47,7 +48,9 @@ package "DATA LAYER" {
 package "EXTERNAL SERVICES" {
   cloud [Groq API\nLlama 3.3 70B] as groqapi
   cloud [Google Gemini\n3.6 Flash] as geminiapi
+  cloud [Gemini Embedding\ngemini-embedding-001\n768 dimensions] as embedapi
   cloud [Deepgram\nNova-2\n(WebSocket)] as deepgramapi
+  cloud [Supabase\npgvector\n(RAG Cache)] as supabase
   cloud [Vercel Backend\nToken issuance] as backend
 }
 
@@ -67,6 +70,7 @@ sw --> offscreen : START_CAPTURE\n(streamId)
 ' Orchestration to AI
 sw --> groq : extract + verify
 sw --> gemini : analyze images
+sw --> rag : check cache\nstore results
 
 ' Orchestration to Data
 sw --> mbfc : domain lookup
@@ -86,6 +90,8 @@ sw --> sidepanel : SCAN_COMPLETE\nLIVE_CLAIMS\nLIVE_TRANSCRIPT
 ' AI Layer to External
 groq --> groqapi : REST API\n(JSON)
 gemini --> geminiapi : REST API\n(multimodal)
+rag --> embedapi : embed claim\n(768-dim vector)
+rag --> supabase : search similar\nstore verified
 
 ' Offscreen to External
 offscreen --> deepgramapi : WebSocket\n(Int16 PCM audio)
@@ -96,24 +102,23 @@ offscreen --> backend : fetch token
 component [Web Pages] as pages
 content --> pages
 
+note right of supabase
+  Self-learning cache
+  Stores cross-verified
+  HIGH confidence claims
+  Similarity threshold: 0.92
+end note
+
 note right of deepgramapi
   Bidirectional WebSocket
   Client sends: raw audio
   Server sends: transcript
-  Persistent connection
-end note
-
-note right of offscreen
-  Hidden document
-  Has Web Audio API
-  Captures tab audio
-  16kHz, Int16 PCM
 end note
 
 note bottom of sw
   Central coordinator
-  All layers communicate
-  through service worker
+  RAG check before Groq
+  Only stores after cross-verify
 end note
 
 @enduml
