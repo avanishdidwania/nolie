@@ -4,6 +4,7 @@ import { analyzeImages as aiAnalyzeImages, analyzeVideos as aiAnalyzeVideos } fr
 import { crossVerifyClaims } from '../lib/cross-verify.js';
 import { deduplicateClaims } from '../lib/dedup.js';
 import { checkRAGCache, storeVerification } from '../lib/rag.js';
+import { agentVerifyClaims } from '../lib/agent.js';
 import { lookupDomain } from '../lib/mbfc.js';
 
 // Context menu for manual fact-checking
@@ -346,11 +347,20 @@ async function runPipeline(content) {
 
     // Step 2: Verify claims (with RAG cache check)
     broadcast({ type: MSG.SCAN_PROGRESS, text: 'Verifying claims...', progress: 50 });
-    let verifiedClaims = await verifyClaimsWithRAG(claims, apiKey, content.text, content.metadata.domain);
-
-    // Step 2b: Cross-verification (if enabled)
     const settings = await getSettings();
-    if (settings.crossVerify) {
+
+    let verifiedClaims;
+    if (settings.agentMode) {
+      // Agent Mode: use LangGraph agent for autonomous verification
+      broadcast({ type: MSG.SCAN_PROGRESS, text: 'Agent verifying claims...', progress: 50 });
+      verifiedClaims = await agentVerifyClaims(claims, content.text, content.metadata.domain);
+    } else {
+      // Standard mode: RAG cache + Groq
+      verifiedClaims = await verifyClaimsWithRAG(claims, apiKey, content.text, content.metadata.domain);
+    }
+
+    // Step 2b: Cross-verification (if enabled, not in agent mode)
+    if (settings.crossVerify && !settings.agentMode) {
       broadcast({ type: MSG.SCAN_PROGRESS, text: 'Cross-verifying claims...', progress: 60 });
       const groqKey = await getGroqKey();
       if (groqKey) {

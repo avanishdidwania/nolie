@@ -18,7 +18,8 @@
     "https://api.deepgram.com/*",
     "wss://api.deepgram.com/*",
     "https://nolie-backend.vercel.app/*",
-    "https://vvgforamjjqsthwwbeyw.supabase.co/*"
+    "https://vvgforamjjqsthwwbeyw.supabase.co/*",
+    "https://nolie-agent-production.up.railway.app/*"
   ],
   "action": {
     "default_popup": "src/popup/popup.html",
