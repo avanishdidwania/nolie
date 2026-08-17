@@ -4,7 +4,7 @@ import { analyzeImages as aiAnalyzeImages, analyzeVideos as aiAnalyzeVideos } fr
 import { crossVerifyClaims } from '../lib/cross-verify.js';
 import { deduplicateClaims } from '../lib/dedup.js';
 import { checkRAGCache, storeVerification } from '../lib/rag.js';
-import { agentVerifyClaims } from '../lib/agent.js';
+import { agentVerifyClaims, isAgentUnavailable } from '../lib/agent.js';
 import { lookupDomain } from '../lib/mbfc.js';
 
 // Context menu for manual fact-checking
@@ -350,12 +350,31 @@ async function runPipeline(content) {
     const settings = await getSettings();
 
     let verifiedClaims;
-    if (settings.agentMode) {
+    if (settings.agentMode && !isAgentUnavailable()) {
       // Agent Mode: use LangGraph agent for autonomous verification
       broadcast({ type: MSG.SCAN_PROGRESS, text: 'Agent verifying claims...', progress: 50 });
-      verifiedClaims = await agentVerifyClaims(claims, content.text, content.metadata.domain);
+      const agentResult = await agentVerifyClaims(claims, content.text, content.metadata.domain);
+
+      // Guardrail E: Circuit breaker — if agent failed, fall back to standard mode
+      if (agentResult && agentResult.fallback) {
+        console.warn('[NoLie] Agent circuit breaker tripped:', agentResult.reason);
+        broadcast({ type: MSG.SCAN_PROGRESS, text: 'Agent unavailable — falling back to standard mode...', progress: 55 });
+
+        // Keep any partial results the agent already produced
+        const partialResults = agentResult.partialResults || [];
+        const remainingClaims = agentResult.remainingClaims || claims;
+
+        // Verify remaining claims with standard pipeline
+        const standardResults = await verifyClaimsWithRAG(remainingClaims, apiKey, content.text, content.metadata.domain);
+        verifiedClaims = [...partialResults, ...standardResults];
+      } else {
+        verifiedClaims = agentResult;
+      }
     } else {
-      // Standard mode: RAG cache + Groq
+      // Standard mode (or agent unavailable due to circuit breaker)
+      if (settings.agentMode && isAgentUnavailable()) {
+        broadcast({ type: MSG.SCAN_PROGRESS, text: 'Agent unavailable — using standard mode...', progress: 50 });
+      }
       verifiedClaims = await verifyClaimsWithRAG(claims, apiKey, content.text, content.metadata.domain);
     }
 

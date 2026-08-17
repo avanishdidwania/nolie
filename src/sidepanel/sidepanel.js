@@ -133,7 +133,7 @@ function showResults(results) {
 
   // Source badge
   if (results.source) {
-    sourceBadge.textContent = results.source;
+    sourceBadge.textContent = results.source.rating || results.source;
     sourceBadge.classList.remove('hidden');
   } else {
     sourceBadge.classList.add('hidden');
@@ -213,6 +213,31 @@ function renderClaim(claim, index) {
     return `<a href="${searchUrl}" target="_blank" class="source-link">${escapeHtml(src)}</a>`;
   }).join('');
 
+  // Agent reasoning trail (only shown for agent mode claims)
+  let reasoningHtml = '';
+  if (claim.agentMode && (claim.reasoningTrail?.length || claim.toolsUsed?.length)) {
+    const toolBadges = (claim.toolsUsed || []).map(t =>
+      `<span class="tool-badge">${escapeHtml(t)}</span>`
+    ).join('');
+
+    const steps = (claim.reasoningTrail || []).map(step =>
+      `<li class="reasoning-step">${escapeHtml(step)}</li>`
+    ).join('');
+
+    reasoningHtml = `
+      <details class="reasoning-trail">
+        <summary class="reasoning-toggle">
+          <span class="reasoning-icon">🤖</span> Agent Reasoning
+          <span class="reasoning-step-count">${(claim.reasoningTrail || []).length} steps</span>
+        </summary>
+        <div class="reasoning-content">
+          ${toolBadges ? `<div class="tools-used"><span class="tools-label">Tools used:</span>${toolBadges}</div>` : ''}
+          ${steps ? `<ol class="reasoning-steps">${steps}</ol>` : ''}
+        </div>
+      </details>
+    `;
+  }
+
   return `
     <div class="claim-card${claim.disputed ? ' claim-disputed' : ''}">
       <div class="claim-header">
@@ -221,12 +246,14 @@ function renderClaim(claim, index) {
         <span class="confidence conf-${(claim.confidence || '').toLowerCase()}">${escapeHtml(claim.confidence || '')}</span>
         ${claim.crossVerified && !claim.disputed ? '<span class="cross-badge">✓ Cross-verified</span>' : ''}
         ${claim.disputed ? '<span class="disputed-badge">⚠ Disputed</span>' : ''}
+        ${claim.agentMode ? '<span class="agent-badge">🤖 Agent</span>' : ''}
       </div>
       <p class="claim-text">"${escapeHtml(claim.claim || '')}"</p>
       <p class="claim-explanation">${escapeHtml(claim.explanation || '')}</p>
       ${claim.crossVerification?.challenge ? `<p class="cross-challenge">${escapeHtml(claim.crossVerification.challenge)}</p>` : ''}
       ${claim.dependencyNote ? `<p class="dependency-note">${escapeHtml(claim.dependencyNote)}</p>` : ''}
       ${sources ? `<div class="claim-sources">${sources}</div>` : ''}
+      ${reasoningHtml}
     </div>
   `;
 }

@@ -29,7 +29,7 @@ export const STORAGE_KEY = {
 export const MODEL = 'gemini-3.6-flash';
 
 // Groq model (claim extraction + verification)
-export const GROQ_MODEL = 'llama-3.3-70b-versatile';
+export const GROQ_MODEL = 'openai/gpt-oss-120b';
 export const GROQ_BASE_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 export const VERDICT = {

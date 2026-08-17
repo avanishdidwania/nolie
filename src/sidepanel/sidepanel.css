@@ -359,3 +359,78 @@ body {
   background: rgba(212,76,71,0.05); border-radius: 4px;
   border-left: 2px solid #d44c47;
 }
+
+/* --- Agent Badge --- */
+.agent-badge {
+  font-size: 10px; color: #a78bfa; background: rgba(167,139,250,0.1);
+  padding: 2px 6px; border-radius: 3px; margin-left: auto;
+}
+
+/* --- Agent Reasoning Trail --- */
+.reasoning-trail {
+  margin-top: 10px;
+  border: 1px solid #2e2e2e;
+  border-radius: 6px;
+  background: #1a1a2e;
+  overflow: hidden;
+}
+.reasoning-toggle {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 12px;
+  font-size: 12px; font-weight: 500;
+  color: #a78bfa;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  transition: background 0.15s;
+}
+.reasoning-toggle::-webkit-details-marker { display: none; }
+.reasoning-toggle::after {
+  content: '▸'; margin-left: auto; font-size: 10px;
+  color: #6b6b6b; transition: transform 0.2s;
+}
+details[open] .reasoning-toggle::after { transform: rotate(90deg); }
+.reasoning-toggle:hover { background: #1e1e3a; }
+.reasoning-icon { font-size: 13px; }
+.reasoning-step-count {
+  font-size: 10px; color: #6b6b6b;
+  background: #2a2a3e; padding: 1px 6px; border-radius: 8px;
+}
+.reasoning-content {
+  padding: 10px 12px;
+  border-top: 1px solid #2e2e2e;
+}
+.tools-used {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin-bottom: 10px;
+}
+.tools-label {
+  font-size: 11px; color: #7a7a7a; font-weight: 500;
+}
+.tool-badge {
+  font-size: 10px; font-family: 'SF Mono', 'Fira Code', monospace;
+  color: #7dd3fc; background: rgba(125,211,252,0.1);
+  padding: 2px 7px; border-radius: 3px;
+  border: 1px solid rgba(125,211,252,0.15);
+}
+.reasoning-steps {
+  list-style: none; counter-reset: step;
+  padding: 0; margin: 0;
+}
+.reasoning-step {
+  counter-increment: step;
+  position: relative;
+  padding: 6px 0 6px 24px;
+  font-size: 11px; color: #b0b0b0; line-height: 1.5;
+  border-left: 1px solid #3a3a5e;
+  margin-left: 8px;
+}
+.reasoning-step::before {
+  content: counter(step);
+  position: absolute; left: -7px; top: 6px;
+  width: 14px; height: 14px;
+  background: #2a2a3e; border: 1px solid #3a3a5e;
+  border-radius: 50%; font-size: 9px; font-weight: 600;
+  color: #a78bfa; display: flex; align-items: center; justify-content: center;
+}
+.reasoning-step:last-child { border-left-color: transparent; }
