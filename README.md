@@ -1,8 +1,10 @@
-c# NoLie — AI-Powered Content Credibility & Fact Verification
+# NoLie — AI-Powered Content Credibility & Fact Verification
 
 ## Overview
 
 NoLie is a Chrome extension that automatically scans news articles and YouTube videos, extracts factual claims, verifies them using AI, analyzes images for manipulation, and provides credibility scores. Built as part of a Gen AI internship project focused on content credibility and fact verification.
+
+It supports two verification paths: a fast **standard pipeline** (extract → verify → optional cross-verify) and an optional **Agent Mode** that routes each claim through a LangGraph agent (hosted on Railway) which autonomously classifies the claim, checks source credibility, searches a verification cache, runs web search, and produces a verdict with a full reasoning trail.
 
 ## Features
 
@@ -11,6 +13,7 @@ NoLie is a Chrome extension that automatically scans news articles and YouTube v
 - **YouTube video fact-checking** — automatically extracts video transcript (auto-generated or manual captions) and verifies claims from spoken content
 - **AI-powered claim extraction** — identifies specific, verifiable factual statements, filtering out opinions and predictions
 - **Context-aware verification** — each claim is verified with full article/transcript context for accurate assessment
+- **Agentic verification (Agent Mode)** — optional mode that routes each claim through a LangGraph agent on Railway. The agent autonomously classifies the claim, checks source credibility, searches the RAG cache, runs web search (Tavily), and verifies with context — returning a verdict plus a reasoning trail and the tools it used. Protected by a circuit breaker: after 3 consecutive failures it disables itself and falls back to standard verification.
 - **Self-learning RAG cache** — verified claims are stored in a vector database (Supabase pgvector). Future similar claims are answered instantly from cache without API calls. Only stores cross-verified HIGH confidence results to prevent poisoning.
 - **Image analysis** — detects AI-generated images, manipulation, and misleading visuals using Gemini multimodal AI
 - **Source credibility scoring** — rates 3,920+ news domains using the MBFC (Media Bias/Fact Check) dataset for bias and factual reporting
@@ -30,13 +33,16 @@ User clicks "Scan This Page"
 Content Extraction (article text, images, video transcript)
         |
         v
-Claim Extraction (Groq - Llama 3.3 70B)
+Claim Extraction (Groq - openai/gpt-oss-120b)
         |
         v
 RAG Cache Check (Supabase pgvector) → [HIT: instant answer] / [MISS: continue]
         |
         v
-Claim Verification with full context (Groq - Llama 3.3 70B) → Store if cross-verified
+Verification:
+   ├─ Standard Mode: Claim verified with full context (Groq) → optional cross-verify
+   └─ Agent Mode:    LangGraph agent on Railway (classify → source check →
+                     cache search → web search → verify) with circuit-breaker fallback
         |
         v
 Image Analysis (Google Gemini - multimodal)
@@ -46,6 +52,23 @@ Source Credibility (MBFC dataset - offline lookup)
         |
         v
 Score Calculation + Results Display + Heatmap Overlay
+```
+
+### Agent Mode (optional)
+
+```
+Claim → agentVerifyClaim() → POST https://nolie-agent-production.up.railway.app/verify
+                                   │
+                                   ▼
+        LangGraph agent autonomously calls tools:
+        classify_claim_type → check_source_credibility → search_verified_claims
+        → web_search (Tavily) → verify_claim_with_context   (max 7 tool calls)
+                                   │
+                                   ▼
+        { verdict, confidence, explanation, reasoning_trail, tools_used }
+
+Circuit breaker: 3 consecutive agent failures → agent disabled for the session,
+remaining claims fall back to standard verification.
 ```
 
 ### Live Mode (Non-YouTube)
@@ -60,11 +83,13 @@ User clicks "Start Live" → tabCapture gets audio stream → Offscreen document
 
 | Provider | Role | Why |
 |----------|------|-----|
-| Groq (Llama 3.3 70B) | Claim extraction + verification | Fast, free tier (14,400 req/day), great at structured JSON output |
+| Groq (openai/gpt-oss-120b) | Claim extraction + verification | Fast, generous free tier, great at structured JSON output |
+| NoLie Agent (LangGraph on Railway) | Agentic verification (Agent Mode) | Autonomous multi-tool reasoning: classify, source check, cache, web search |
 | Google Gemini (3.6 Flash) | Image/video multimodal analysis | Handles images natively, detects AI-generated content |
 | Deepgram (Nova-2) | Real-time audio transcription | Accurate, fast, supports 30+ languages, $200 free credit |
 | MBFC Dataset | Source credibility + bias scoring | Bundled offline (3,920 domains), no API needed |
 | Supabase (pgvector) | Self-learning verification cache | Vector similarity search, persistent storage, free tier (500MB) |
+| Tavily | Web search (Agent Mode) | Current information for recent events and statistics |
 | Gemini Embedding (gemini-embedding-001) | Claim embedding for semantic search | 768-dim vectors, free tier (1,500 req/day) |
 
 ## Tech Stack
@@ -72,13 +97,14 @@ User clicks "Start Live" → tabCapture gets audio stream → Offscreen document
 - Chrome Extension (Manifest V3)
 - Vanilla JS + CSS (dark Notion-style theme)
 - Vite + @crxjs/vite-plugin (build tooling)
-- Groq API (Llama 3.3 70B) — text analysis
+- Groq API (openai/gpt-oss-120b) — claim extraction + verification
+- NoLie Agent — LangGraph agent (Groq + Tavily + Supabase), hosted on Railway, for Agent Mode
 - Google Gemini API (3.6 Flash) — multimodal image analysis
 - MBFC Dataset — source credibility (bundled JSON, 3,920 domains)
 - Deepgram API (Nova-2) — real-time audio-to-text transcription
 - Supabase (PostgreSQL + pgvector) — self-learning RAG cache for verified claims
 - Gemini Embedding API — semantic embeddings for claim similarity matching
-- Vercel Serverless Functions — backend for secure Deepgram token issuance
+- Vercel Serverless Functions — backend for secure Deepgram token issuance + RAG cache read/write
 - Chrome Side Panel API — results display
 
 ## Setup
@@ -127,7 +153,7 @@ To deploy your own backend:
 ### News Articles
 1. User clicks "Scan This Page" from the extension popup
 2. Content script extracts article text, images, embedded videos, and metadata (domain, date, author)
-3. Article text sent to Groq (Llama 3.3 70B) to extract verifiable factual claims
+3. Article text sent to Groq (openai/gpt-oss-120b) to extract verifiable factual claims
 4. Each claim checked against RAG cache first (instant if similar claim was previously verified). Cache misses verified via Groq with full article context.
 5. Images optionally analyzed by Gemini for AI-generation and manipulation
 6. Article domain checked against MBFC dataset for source reliability and bias
@@ -168,12 +194,16 @@ nolie/
 │   ├── content/
 │   │   ├── content.js         # Page text/image extraction + heatmap overlay
 │   │   ├── youtube.js         # YouTube transcript extraction utilities
+│   │   ├── live-factcheck.js  # Live caption polling for real-time fact-checking
 │   │   └── heatmap.css        # Inline highlight styles (green/yellow/red)
 │   ├── data/
 │   │   └── mbfc.json          # Media Bias/Fact Check dataset (3,920 domains)
 │   ├── lib/
-│   │   ├── constants.js       # Message types, storage keys, prompts
+│   │   ├── constants.js       # Message types, storage keys, model names, prompts
 │   │   ├── groq.js            # Groq API: claim extraction + verification
+│   │   ├── agent.js           # Agent Mode client: calls LangGraph agent on Railway + circuit breaker
+│   │   ├── cross-verify.js    # Adversarial second-pass cross-verification
+│   │   ├── dedup.js           # Semantic claim deduplication
 │   │   ├── gemini.js          # Gemini API: image/video multimodal analysis
 │   │   ├── mbfc.js            # MBFC domain lookup with subdomain fallback
 │   │   ├── rag.js             # Self-learning RAG: embed, search, store verified claims
@@ -247,7 +277,7 @@ The evaluation script and full results are in `eval/`.
 
 - YouTube transcript extraction requires the transcript panel to be open (auto-opened when possible)
 - Image analysis depends on Gemini quota availability
-- Groq's Llama 3.3 70B has a knowledge cutoff — very recent events may be marked UNVERIFIABLE
+- In standard mode, Groq's model has a knowledge cutoff — very recent events may be marked UNVERIFIABLE (Agent Mode mitigates this via web search)
 - Auto-generated YouTube captions may have transcription errors that affect claim accuracy
 - MBFC dataset covers English-language news sources primarily
 - Deepgram real-time mode requires the backend to be deployed (for token issuance)
