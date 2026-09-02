@@ -48,7 +48,7 @@ It directly addresses the internship project topic: **"Generative AI-Powered Con
     +-----------------------------------------+
     |        CLAIM EXTRACTION (Groq API)       |
     |                                          |
-    |  Model: Llama 3.3 70B                    |
+    |  Model: openai/gpt-oss-120b              |
     |  Structured JSON output                  |
     |  Filters: only verifiable factual claims |
     |  Ignores: opinions, predictions, filler  |
@@ -103,9 +103,9 @@ It directly addresses the internship project topic: **"Generative AI-Powered Con
 
 **Why not just one provider?**
 
-- **Groq (Llama 3.3 70B)** is used for text analysis (claim extraction + verification) because:
-  - Free tier: 14,400 requests/day
-  - Extremely fast inference (~500 tokens/sec)
+- **Groq (openai/gpt-oss-120b)** is used for text analysis (claim extraction + verification) because:
+  - Generous free tier
+  - Extremely fast inference on Groq's LPU hardware
   - Great at structured JSON output
   - No billing required
 
@@ -225,7 +225,8 @@ Image penalties:
 | Extension | Chrome Manifest V3 | Industry standard, side panel API |
 | Build | Vite + @crxjs/vite-plugin | Fast builds, ES module support |
 | UI | Vanilla JS + CSS (dark theme) | No framework overhead, clean |
-| Text AI | Groq API (Llama 3.3 70B) | Free, fast, structured output |
+| Text AI | Groq API (openai/gpt-oss-120b) | Free, fast, structured output |
+| Agentic verification | LangGraph agent on Railway (Agent Mode) | Autonomous multi-tool reasoning + web search |
 | Vision AI | Google Gemini (3.6 Flash) | Multimodal, image analysis |
 | Source Data | MBFC Dataset (bundled JSON) | Offline, 3,920 domains |
 | Styling | Notion-inspired dark theme | Clean, professional |

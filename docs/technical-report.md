@@ -105,9 +105,9 @@ NoLie is a Chrome extension that provides AI-powered content credibility assessm
 
 **Why:** Without a bundler, we'd need to manage module imports manually. Vite lets us use ES modules (`import/export`) everywhere and compiles them into extension-compatible bundles.
 
-### 3.3 Groq API (Llama 3.3 70B)
+### 3.3 Groq API (openai/gpt-oss-120b)
 
-**What it is:** Groq provides ultra-fast LLM inference on custom LPU hardware. We use their API to run Llama 3.3 70B (a 70 billion parameter open-source model).
+**What it is:** Groq provides ultra-fast LLM inference on custom LPU hardware. We use their API to run `openai/gpt-oss-120b` (an open-weight model) for all text-based operations.
 
 **Where we use it:**
 - `src/lib/groq.js` — all text-based AI calls
@@ -120,7 +120,7 @@ NoLie is a Chrome extension that provides AI-powered content credibility assessm
 POST https://api.groq.com/openai/v1/chat/completions
 Headers: Authorization: Bearer <API_KEY>
 Body: {
-  model: "llama-3.3-70b-versatile",
+  model: "openai/gpt-oss-120b",
   messages: [{ role: "system", content: "..." }, { role: "user", content: "..." }],
   temperature: 0,
   response_format: { type: "json_object" }
@@ -128,11 +128,24 @@ Body: {
 ```
 
 **Why Groq over other providers:**
-- Free tier: 14,400 requests/day, 30 RPM
-- Extremely fast inference (~500 tokens/sec)
+- Generous free tier
+- Extremely fast inference on Groq's LPU hardware
 - Structured JSON output mode
 - No credit card required
-- Llama 3.3 70B is excellent for structured extraction tasks
+- Strong at structured extraction and verification tasks
+
+### 3.3a NoLie Agent — LangGraph on Railway (Agent Mode)
+
+**What it is:** An optional agentic verification path. When "Agent Mode" is enabled in settings, each claim is routed to a LangGraph agent hosted on Railway instead of the single-shot Groq verification.
+
+**Where we use it:**
+- `src/lib/agent.js` — client that calls `POST https://nolie-agent-production.up.railway.app/verify`
+- The agent autonomously decides which tools to call: `classify_claim_type`, `check_source_credibility`, `search_verified_claims` (RAG cache), `web_search` (Tavily), `verify_claim_with_context` — up to a 7 tool-call guardrail
+- Returns `{ verdict, confidence, explanation, reasoning_trail, tools_used }`
+
+**Circuit breaker (Guardrail E):** After 3 consecutive agent failures, the client marks the agent unavailable for the session and the service worker falls back to standard verification — the scan never breaks.
+
+**Why:** Agent Mode adds web search and multi-step reasoning, which mitigates the model's knowledge cutoff for recent events. Standard mode stays as the fast default.
 
 ### 3.4 Google Gemini API (3.6 Flash)
 
